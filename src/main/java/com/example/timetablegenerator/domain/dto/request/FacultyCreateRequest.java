@@ -1,0 +1,14 @@
+package com.example.timetablegenerator.domain.dto.request;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
+public record FacultyCreateRequest(
+        @NotBlank(message = "Faculty name is required")
+        String name,
+
+        @NotBlank(message = "Faculty short name is required")
+        @Size(max = 10, message = "Short name must not exceed 10 characters")
+        String shortName
+) {
+}
