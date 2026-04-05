@@ -10,13 +10,13 @@ public interface TimetableService {
 
     List<TimetableResponse> getAllTimetables();
 
-    Optional<TimetableResponse> getCurrentTimetable();
+    Optional<TimetableResponse> getPublishedTimetable();
 
-    Optional<TimetableResponse> getTimetable(Long versionId);
+    Optional<TimetableResponse> getTimetable(Long timetableId);
 
     TimetableResponse createTimetable(TimetableRequest request);
 
-    TimetableResponse publishTimetable(Long versionId);
+    TimetableResponse publishTimetable(Long timetableId);
 
-    void deleteTimetable(Long versionId);
+    void deleteTimetable(Long timetableId);
 }

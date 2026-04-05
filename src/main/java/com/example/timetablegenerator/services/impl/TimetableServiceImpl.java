@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,17 +27,14 @@ public class TimetableServiceImpl implements TimetableService {
 
     @Override
     public List<TimetableResponse> getAllTimetables() {
-        return timetableRepository.findAll().stream()
-                .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
+        return timetableRepository.findAllByOrderByCreatedAtDesc().stream()
                 .map(timetableMapper::toResponse)
                 .toList();
     }
 
     @Override
-    public Optional<TimetableResponse> getCurrentTimetable() {
-        return timetableRepository.findAll().stream()
-                .filter(Timetable::isCurrent)
-                .findFirst()
+    public Optional<TimetableResponse> getPublishedTimetable() {
+        return timetableRepository.findFirstByStatusOrderByCreatedAtDesc(TimetableStatus.PUBLISHED)
                 .map(timetableMapper::toResponse);
     }
 
@@ -53,14 +49,21 @@ public class TimetableServiceImpl implements TimetableService {
     public TimetableResponse createTimetable(TimetableRequest request) {
         Timetable timetable = timetableMapper.toEntity(request);
 
-        timetable.setCreatedAt(LocalDateTime.now());
-        timetable.setCurrent(false);
-        timetable.setPublished(false);
+        Integer maxVersion = timetableRepository.findMaxVersion(
+                request.academicYearStart(),
+                request.semester()
+        );
+
+        int newVersion = (maxVersion == null) ? 0 : maxVersion + 1;
+
+        timetable.setVersion(newVersion);
         timetable.setStatus(TimetableStatus.DRAFT);
 
-        if (timetableRepository.count() == 0) {
-            timetable.setCurrent(true);
+        if (request.name() != null && !request.name().isBlank()) {
+            timetable.setName(request.name().trim());
         }
+
+        timetable.syncDerivedFields();
 
         Timetable saved = timetableRepository.save(timetable);
         return timetableMapper.toResponse(saved);
@@ -72,16 +75,14 @@ public class TimetableServiceImpl implements TimetableService {
         Timetable timetable = timetableRepository.findById(timetableId)
                 .orElseThrow(() -> new NotFoundException("Timetable not found with id: " + timetableId));
 
-        timetableRepository.findAll().stream()
-                .filter(Timetable::isCurrent)
-                .forEach(t -> {
-                    t.setCurrent(false);
-                    t.setPublished(true);
-                    t.setStatus(TimetableStatus.PUBLISHED);
-                });
+        List<Timetable> publishedTimetables = timetableRepository.findAllByStatus(TimetableStatus.PUBLISHED);
 
-        timetable.setCurrent(true);
-        timetable.setPublished(true);
+        for (Timetable published : publishedTimetables) {
+            if (!published.getId().equals(timetableId)) {
+                published.setStatus(TimetableStatus.ARCHIVED);
+            }
+        }
+
         timetable.setStatus(TimetableStatus.PUBLISHED);
 
         Timetable updated = timetableRepository.save(timetable);
@@ -94,11 +95,7 @@ public class TimetableServiceImpl implements TimetableService {
         Timetable timetable = timetableRepository.findById(timetableId)
                 .orElseThrow(() -> new NotFoundException("Timetable not found with id: " + timetableId));
 
-        if (timetable.isCurrent()) {
-            throw new IllegalStateException("Cannot delete current timetable");
-        }
-
-        if (timetable.isPublished()) {
+        if (timetable.getStatus() == TimetableStatus.PUBLISHED) {
             throw new IllegalStateException("Cannot delete published timetable");
         }
 
