@@ -12,6 +12,10 @@ public interface StudyGroupService {
 
     List<StudyGroupResponse> getGroupsByFaculty(Long facultyId);
 
+    List<StudyGroupResponse> getGroupsByDepartment(Long departmentId);
+
+    List<StudyGroupResponse> getGroupsByMajor(Long majorId);
+
     Optional<StudyGroupResponse> getGroup(Long groupId);
 
     StudyGroupResponse createGroup(StudyGroupRequest request);

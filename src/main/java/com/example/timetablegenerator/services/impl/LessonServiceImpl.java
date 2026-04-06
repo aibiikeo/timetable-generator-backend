@@ -2,10 +2,15 @@ package com.example.timetablegenerator.services.impl;
 
 import com.example.timetablegenerator.domain.dto.request.LessonRequest;
 import com.example.timetablegenerator.domain.dto.response.LessonResponse;
+import com.example.timetablegenerator.domain.entities.Assignment;
 import com.example.timetablegenerator.domain.entities.Lesson;
+import com.example.timetablegenerator.domain.entities.Room;
+import com.example.timetablegenerator.domain.entities.Timetable;
 import com.example.timetablegenerator.exceptions.NotFoundException;
 import com.example.timetablegenerator.mappers.LessonMapper;
+import com.example.timetablegenerator.repositories.AssignmentRepository;
 import com.example.timetablegenerator.repositories.LessonRepository;
+import com.example.timetablegenerator.repositories.RoomRepository;
 import com.example.timetablegenerator.repositories.TimetableRepository;
 import com.example.timetablegenerator.services.LessonService;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +29,8 @@ public class LessonServiceImpl implements LessonService {
 
     private final LessonRepository lessonRepository;
     private final TimetableRepository timetableRepository;
+    private final AssignmentRepository assignmentRepository;
+    private final RoomRepository roomRepository;
     private final LessonMapper lessonMapper;
 
     @Override
@@ -36,7 +43,7 @@ public class LessonServiceImpl implements LessonService {
     @Override
     public List<LessonResponse> getLessonsByAssignment(Long timetableId, Long assignmentId) {
         return lessonRepository.findByAssignmentId(assignmentId).stream()
-                .filter(l -> l.getTimetable().getId().equals(timetableId))
+                .filter(lesson -> lesson.getTimetable().getId().equals(timetableId))
                 .map(lessonMapper::toResponse)
                 .toList();
     }
@@ -71,11 +78,25 @@ public class LessonServiceImpl implements LessonService {
     @Transactional
     @Override
     public LessonResponse createLesson(Long timetableId, LessonRequest request) {
-        var timetable = timetableRepository.findById(timetableId)
-                .orElseThrow(() -> new NotFoundException("Timetable not found: " + timetableId));
+        Timetable timetable = timetableRepository.findById(timetableId)
+                .orElseThrow(() -> new NotFoundException("Timetable not found with id: " + timetableId));
+
+        Assignment assignment = assignmentRepository.findByIdAndTimetableId(request.assignmentId(), timetableId)
+                .orElseThrow(() -> new NotFoundException("Assignment not found with id: " + request.assignmentId()));
+
+        Room room = null;
+        if (request.roomId() != null) {
+            room = roomRepository.findById(request.roomId())
+                    .orElseThrow(() -> new NotFoundException("Room not found with id: " + request.roomId()));
+        }
 
         Lesson lesson = lessonMapper.toEntity(request);
         lesson.setTimetable(timetable);
+        lesson.setAssignment(assignment);
+        lesson.setSubject(assignment.getSubject());
+        lesson.setTeacher(assignment.getTeacher());
+        lesson.setGroups(assignment.getGroups());
+        lesson.setRoom(room);
 
         Lesson saved = lessonRepository.save(lesson);
         return lessonMapper.toResponse(saved);
@@ -85,11 +106,23 @@ public class LessonServiceImpl implements LessonService {
     @Override
     public LessonResponse updateLesson(Long timetableId, Long lessonId, LessonRequest request) {
         Lesson lesson = lessonRepository.findByTimetableIdAndId(timetableId, lessonId)
-                .orElseThrow(() -> new NotFoundException(
-                        "Lesson with id: " + lessonId + " not found in timetable: " + timetableId));
+                .orElseThrow(() -> new NotFoundException("Lesson not found with id: " + lessonId));
+
+        Assignment assignment = assignmentRepository.findByIdAndTimetableId(request.assignmentId(), timetableId)
+                .orElseThrow(() -> new NotFoundException("Assignment not found with id: " + request.assignmentId()));
+
+        Room room = null;
+        if (request.roomId() != null) {
+            room = roomRepository.findById(request.roomId())
+                    .orElseThrow(() -> new NotFoundException("Room not found with id: " + request.roomId()));
+        }
 
         lessonMapper.updateEntityFromRequest(request, lesson);
-        lesson.getTimetable().setId(timetableId);
+        lesson.setAssignment(assignment);
+        lesson.setSubject(assignment.getSubject());
+        lesson.setTeacher(assignment.getTeacher());
+        lesson.setGroups(assignment.getGroups());
+        lesson.setRoom(room);
 
         Lesson updated = lessonRepository.save(lesson);
         return lessonMapper.toResponse(updated);
@@ -99,8 +132,7 @@ public class LessonServiceImpl implements LessonService {
     @Override
     public void deleteLesson(Long timetableId, Long lessonId) {
         Lesson lesson = lessonRepository.findByTimetableIdAndId(timetableId, lessonId)
-                .orElseThrow(() -> new NotFoundException(
-                        "Lesson with id: " + lessonId + " not found in timetable: " + timetableId));
+                .orElseThrow(() -> new NotFoundException("Lesson not found with id: " + lessonId));
 
         lessonRepository.delete(lesson);
     }

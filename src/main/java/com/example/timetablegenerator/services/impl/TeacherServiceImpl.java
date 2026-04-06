@@ -101,46 +101,27 @@ public class TeacherServiceImpl implements TeacherService {
                     );
                 }
                 teacherRepository.delete(teacher);
-                log.info("Deleted teacher {} (simple mode)", teacherId);
             }
 
             case DETACH -> {
-                // Отвязываем назначения
-                if (!assignments.isEmpty()) {
-                    for (Assignment assignment : assignments) {
-                        assignment.setTeacher(null);
-                        assignmentRepository.save(assignment);
-                    }
-                    log.info("Detached {} assignments from teacher {} (detach mode)", assignments.size(), teacherId);
+                for (Assignment assignment : assignments) {
+                    assignment.setTeacher(null);
+                    assignmentRepository.save(assignment);
                 }
-                // Отвязываем уроки
                 lessonRepository.detachTeacher(teacherId);
-                log.info("Detached lessons from teacher {} (detach mode)", teacherId);
-
                 teacherRepository.delete(teacher);
-                log.info("Deleted teacher {} (detach mode)", teacherId);
             }
 
             case WITH -> {
-                // Отвязываем уроки от преподавателя
                 lessonRepository.detachTeacher(teacherId);
-                log.info("Detached lessons from teacher {} (with mode)", teacherId);
 
                 if (!assignments.isEmpty()) {
                     List<Long> assignmentIds = assignments.stream().map(Assignment::getId).toList();
-
-                    // Отвязываем уроки от назначений
                     lessonRepository.detachAssignments(assignmentIds);
-                    log.info("Detached {} lessons from assignments of teacher {}", assignmentIds.size(), teacherId);
-
-                    // Удаляем назначения
                     assignmentRepository.deleteAll(assignments);
-                    log.info("Deleted {} assignments of teacher {} (with mode)", assignments.size(), teacherId);
                 }
 
-                // Удаляем преподавателя
                 teacherRepository.delete(teacher);
-                log.info("Deleted teacher {} (with mode)", teacherId);
             }
         }
     }

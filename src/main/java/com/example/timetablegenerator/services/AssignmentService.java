@@ -8,13 +8,13 @@ import java.util.Optional;
 
 public interface AssignmentService {
 
-    List<AssignmentResponse> getAllAssignments(Long versionId);
+    List<AssignmentResponse> getAllAssignments(Long timetableId);
 
-    Optional<AssignmentResponse> getAssignment(Long versionId, Long assignmentId);
+    Optional<AssignmentResponse> getAssignment(Long timetableId, Long assignmentId);
 
-    AssignmentResponse createAssignment(Long versionId, AssignmentRequest request);
+    AssignmentResponse createAssignment(Long timetableId, AssignmentRequest request);
 
-    AssignmentResponse updateAssignment(Long versionId, Long assignmentId, AssignmentRequest request);
+    AssignmentResponse updateAssignment(Long timetableId, Long assignmentId, AssignmentRequest request);
 
-    void deleteAssignment(Long versionId, Long assignmentId);
+    void deleteAssignment(Long timetableId, Long assignmentId);
 }

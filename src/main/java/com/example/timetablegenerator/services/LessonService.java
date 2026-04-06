@@ -8,21 +8,21 @@ import java.util.Optional;
 
 public interface LessonService {
 
-    List<LessonResponse> getAllLessons(Long versionId);
+    List<LessonResponse> getAllLessons(Long timetableId);
 
-    List<LessonResponse> getLessonsByAssignment(Long versionId, Long assignmentId);
+    List<LessonResponse> getLessonsByAssignment(Long timetableId, Long assignmentId);
 
-    List<LessonResponse> getLessonsByTeacher(Long versionId, Long teacherId);
+    List<LessonResponse> getLessonsByTeacher(Long timetableId, Long teacherId);
 
-    List<LessonResponse> getLessonsByGroup(Long versionId, Long groupId);
+    List<LessonResponse> getLessonsByGroup(Long timetableId, Long groupId);
 
-    List<LessonResponse> getLessonsByRoom(Long versionId, Long roomId);
+    List<LessonResponse> getLessonsByRoom(Long timetableId, Long roomId);
 
-    Optional<LessonResponse> getLesson(Long versionId, Long lessonId);
+    Optional<LessonResponse> getLesson(Long timetableId, Long lessonId);
 
-    LessonResponse createLesson(Long versionId, LessonRequest request);
+    LessonResponse createLesson(Long timetableId, LessonRequest request);
 
-    LessonResponse updateLesson(Long versionId, Long lessonId, LessonRequest request);
+    LessonResponse updateLesson(Long timetableId, Long lessonId, LessonRequest request);
 
-    void deleteLesson(Long versionId, Long lessonId);
+    void deleteLesson(Long timetableId, Long lessonId);
 }

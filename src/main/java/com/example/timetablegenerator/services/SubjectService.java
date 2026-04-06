@@ -11,6 +11,12 @@ public interface SubjectService {
 
     List<SubjectResponse> getAllSubjects();
 
+    List<SubjectResponse> getSubjectsByFaculty(Long facultyId);
+
+    List<SubjectResponse> getSubjectsByDepartment(Long departmentId);
+
+    List<SubjectResponse> getSubjectsByMajor(Long majorId);
+
     Optional<SubjectResponse> getSubjectById(Long subjectId);
 
     Optional<SubjectResponse> getSubjectByCode(String code);

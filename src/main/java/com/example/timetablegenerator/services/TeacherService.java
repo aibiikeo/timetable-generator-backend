@@ -18,7 +18,7 @@ public interface TeacherService {
 
     TeacherResponse updateTeacher(Long teacherId, TeacherRequest request);
 
-    List<AssignmentResponse> getAssignmentsByTeacherId(Long teacherId);  // новый метод
+    List<AssignmentResponse> getAssignmentsByTeacherId(Long teacherId);
 
     void deleteTeacher(Long teacherId, DeleteMode mode);
 }
