@@ -43,10 +43,7 @@ public class TimetableController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public TimetableResponse createTimetable(@Valid @RequestBody TimetableRequest request) {
-        log.info("Creating new timetable for {} {} with {} assignments",
-                request.semester(),
-                request.academicYearStart(),
-                request.assignments().size());
+        log.info("Creating new timetable for {} {}", request.semester(), request.academicYearStart());
         return timetableService.createTimetable(request);
     }
 

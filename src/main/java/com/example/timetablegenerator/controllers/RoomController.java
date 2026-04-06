@@ -43,25 +43,20 @@ public class RoomController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public RoomResponse createRoom(@Valid @RequestBody RoomRequest request) {
-        log.info("Creating new room: {} (capacity: {}, type: {})",
-                request.name(), request.capacity(), request.type());
+        log.info("Creating room: {} ({})", request.name(), request.type());
         return roomService.createRoom(request);
     }
 
     @PutMapping("/{id}")
-    public RoomResponse updateRoom(
-            @PathVariable Long id,
-            @Valid @RequestBody RoomRequest request) {
-
-        log.info("Updating room ID: {} → new name: {}, capacity: {}, type: {}",
-                id, request.name(), request.capacity(), request.type());
+    public RoomResponse updateRoom(@PathVariable Long id, @Valid @RequestBody RoomRequest request) {
+        log.info("Updating room {}", id);
         return roomService.updateRoom(id, request);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteRoom(@PathVariable Long id) {
-        log.info("Deleting room with ID: {}", id);
+        log.info("Deleting room {}", id);
         roomService.deleteRoom(id);
     }
 }

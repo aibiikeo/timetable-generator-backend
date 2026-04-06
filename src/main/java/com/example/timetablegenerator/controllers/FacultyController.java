@@ -43,7 +43,7 @@ public class FacultyController {
 
     @PutMapping("/{id}")
     public FacultyResponse updateFaculty(@PathVariable Long id, @Valid @RequestBody FacultyRequest request) {
-        log.info("Updating faculty ID: {} → new name: {}", id, request.name());
+        log.info("Updating faculty ID: {} -> new name: {}", id, request.name());
         return facultyService.updateFaculty(id, request);
     }
 

@@ -27,6 +27,24 @@ public class SubjectController {
         return subjectService.getAllSubjects();
     }
 
+    @GetMapping("/faculty/{facultyId}")
+    public List<SubjectResponse> getSubjectsByFaculty(@PathVariable Long facultyId) {
+        log.debug("Fetching subjects for faculty ID: {}", facultyId);
+        return subjectService.getSubjectsByFaculty(facultyId);
+    }
+
+    @GetMapping("/department/{departmentId}")
+    public List<SubjectResponse> getSubjectsByDepartment(@PathVariable Long departmentId) {
+        log.debug("Fetching subjects for department ID: {}", departmentId);
+        return subjectService.getSubjectsByDepartment(departmentId);
+    }
+
+    @GetMapping("/major/{majorId}")
+    public List<SubjectResponse> getSubjectsByMajor(@PathVariable Long majorId) {
+        log.debug("Fetching subjects for major ID: {}", majorId);
+        return subjectService.getSubjectsByMajor(majorId);
+    }
+
     @GetMapping("/{id}")
     public SubjectResponse getSubjectById(@PathVariable Long id) {
         log.debug("Fetching subject with ID: {}", id);
@@ -44,8 +62,8 @@ public class SubjectController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public SubjectResponse createSubject(@Valid @RequestBody SubjectRequest request) {
-        log.info("Creating new subject: {} ({}) – {} hours/week, facultyId: {}",
-                request.name(), request.code(), request.hoursPerWeek(), request.facultyId());
+        log.info("Creating new subject: {} ({}) - {} hours/week, majorId: {}",
+                request.name(), request.code(), request.hoursPerWeek(), request.majorId());
         return subjectService.createSubject(request);
     }
 
@@ -54,7 +72,8 @@ public class SubjectController {
             @PathVariable Long id,
             @Valid @RequestBody SubjectRequest request) {
 
-        log.info("Updating subject ID: {} → new name: {}, code: {}", id, request.name(), request.code());
+        log.info("Updating subject ID: {} -> new name: {}, code: {}, majorId: {}",
+                id, request.name(), request.code(), request.majorId());
         return subjectService.updateSubject(id, request);
     }
 

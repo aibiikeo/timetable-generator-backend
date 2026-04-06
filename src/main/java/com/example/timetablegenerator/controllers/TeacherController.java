@@ -48,7 +48,7 @@ public class TeacherController {
             @PathVariable Long id,
             @Valid @RequestBody TeacherRequest request) {
 
-        log.info("Updating teacher ID: {} → new name: {}", id, request.fullName());
+        log.info("Updating teacher ID: {} -> new name: {}", id, request.fullName());
         return teacherService.updateTeacher(id, request);
     }
 
