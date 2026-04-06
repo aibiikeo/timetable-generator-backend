@@ -7,8 +7,9 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
-@Mapper
+@Mapper(componentModel = "spring")
 public interface TeacherMapper {
+
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "subjects", ignore = true)
     Teacher toEntity(TeacherRequest request);

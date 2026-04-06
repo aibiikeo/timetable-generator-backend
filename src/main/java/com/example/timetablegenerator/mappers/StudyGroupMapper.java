@@ -2,31 +2,31 @@ package com.example.timetablegenerator.mappers;
 
 import com.example.timetablegenerator.domain.dto.request.StudyGroupRequest;
 import com.example.timetablegenerator.domain.dto.response.StudyGroupResponse;
-import com.example.timetablegenerator.domain.entities.Faculty;
 import com.example.timetablegenerator.domain.entities.StudyGroup;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
-import org.mapstruct.Named;
 
-@Mapper
+@Mapper(componentModel = "spring")
 public interface StudyGroupMapper {
+
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "faculty", source = "facultyId", qualifiedByName = "mapFaculty")
+    @Mapping(target = "major", ignore = true)
     @Mapping(target = "subjects", ignore = true)
     StudyGroup toEntity(StudyGroupRequest request);
 
-    @Mapping(target = "facultyId", source = "faculty.id")
-    @Mapping(target = "facultyName", source = "faculty.name")
+    @Mapping(target = "majorId", source = "major.id")
+    @Mapping(target = "majorName", source = "major.name")
+    @Mapping(target = "degree", source = "major.degree")
+    @Mapping(target = "departmentId", source = "major.department.id")
+    @Mapping(target = "departmentName", source = "major.department.name")
+    @Mapping(target = "facultyId", source = "major.department.faculty.id")
+    @Mapping(target = "facultyName", source = "major.department.faculty.name")
+    @Mapping(target = "facultyShortName", source = "major.department.faculty.shortName")
     StudyGroupResponse toResponse(StudyGroup entity);
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "faculty", source = "facultyId", qualifiedByName = "mapFaculty")
+    @Mapping(target = "major", ignore = true)
     @Mapping(target = "subjects", ignore = true)
     void updateEntityFromRequest(StudyGroupRequest request, @MappingTarget StudyGroup entity);
-
-    @Named("mapFaculty")
-    default Faculty mapFaculty(Long id) {
-        return id != null ? Faculty.builder().id(id).build() : null;
-    }
 }
