@@ -14,7 +14,8 @@ import java.util.Set;
 @Builder
 public class Subject {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false)
@@ -29,9 +30,9 @@ public class Subject {
     @Column(name = "hours_per_week")
     private Integer hoursPerWeek;
 
-    @ManyToOne
-    @JoinColumn(name = "faculty_id")
-    private Faculty faculty;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "major_id", nullable = false)
+    private Major major;
 
     @ManyToMany
     @JoinTable(
@@ -51,4 +52,3 @@ public class Subject {
     @Builder.Default
     private Set<StudyGroup> groups = new HashSet<>();
 }
-
