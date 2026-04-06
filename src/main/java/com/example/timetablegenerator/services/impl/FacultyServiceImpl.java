@@ -1,8 +1,7 @@
 package com.example.timetablegenerator.services.impl;
 
 import com.example.timetablegenerator.domain.dto.request.DeleteMode;
-import com.example.timetablegenerator.domain.dto.request.FacultyCreateRequest;
-import com.example.timetablegenerator.domain.dto.request.FacultyUpdateRequest;
+import com.example.timetablegenerator.domain.dto.request.FacultyRequest;
 import com.example.timetablegenerator.domain.dto.response.FacultyResponse;
 import com.example.timetablegenerator.domain.entities.Faculty;
 import com.example.timetablegenerator.domain.entities.Lesson;
@@ -50,7 +49,7 @@ public class FacultyServiceImpl implements FacultyService {
 
     @Transactional
     @Override
-    public FacultyResponse createFaculty(FacultyCreateRequest request) {
+    public FacultyResponse createFaculty(FacultyRequest request) {
         Faculty faculty = facultyMapper.toEntity(request);
         Faculty saved = facultyRepository.save(faculty);
         return facultyMapper.toResponse(saved);
@@ -58,7 +57,7 @@ public class FacultyServiceImpl implements FacultyService {
 
     @Transactional
     @Override
-    public FacultyResponse updateFaculty(Long facultyId, FacultyUpdateRequest request) {
+    public FacultyResponse updateFaculty(Long facultyId, FacultyRequest request) {
         Faculty faculty = facultyRepository.findById(facultyId)
                 .orElseThrow(() -> new NotFoundException("Faculty not found with id: " + facultyId));
 
@@ -73,8 +72,8 @@ public class FacultyServiceImpl implements FacultyService {
         Faculty faculty = facultyRepository.findById(facultyId)
                 .orElseThrow(() -> new NotFoundException("Faculty not found with id: " + facultyId));
 
-        List<StudyGroup> groups = studyGroupRepository.findByFacultyId(facultyId);
-        List<Subject> subjects = subjectRepository.findByFacultyId(facultyId);
+        List<StudyGroup> groups = studyGroupRepository.findByMajorDepartmentFacultyId(facultyId);
+        List<Subject> subjects = subjectRepository.findByMajorDepartmentFacultyId(facultyId);
 
         if (mode == DeleteMode.SIMPLE && (!groups.isEmpty() || !subjects.isEmpty())) {
             log.info("Auto-switching SIMPLE to DETACH for faculty {} because associated groups or subjects exist", facultyId);
@@ -98,7 +97,7 @@ public class FacultyServiceImpl implements FacultyService {
                 // Обработка групп
                 if (!groups.isEmpty()) {
                     for (StudyGroup group : groups) {
-                        group.setFaculty(null);
+                        group.setMajor(null);
                         studyGroupRepository.save(group);
                     }
                     log.info("Detached {} groups from faculty {} (detach mode)", groups.size(), facultyId);
@@ -110,7 +109,7 @@ public class FacultyServiceImpl implements FacultyService {
                 // Обработка предметов
                 if (!subjects.isEmpty()) {
                     for (Subject subject : subjects) {
-                        subject.setFaculty(null);
+                        subject.setMajor(null);
                         subjectRepository.save(subject);
                     }
                     log.info("Detached {} subjects from faculty {} (detach mode)", subjects.size(), facultyId);
@@ -159,7 +158,7 @@ public class FacultyServiceImpl implements FacultyService {
                     // В режиме WITH_GROUPS можно либо удалить предметы, либо отвязать
                     // Пока отвязываем, как в режиме DETACH
                     for (Subject subject : subjects) {
-                        subject.setFaculty(null);
+                        subject.setMajor(null);
                         subjectRepository.save(subject);
                     }
                     log.info("Detached {} subjects from faculty {} (with-groups mode)", subjects.size(), facultyId);

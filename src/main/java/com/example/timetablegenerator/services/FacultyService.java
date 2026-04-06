@@ -1,8 +1,7 @@
 package com.example.timetablegenerator.services;
 
 import com.example.timetablegenerator.domain.dto.request.DeleteMode;
-import com.example.timetablegenerator.domain.dto.request.FacultyCreateRequest;
-import com.example.timetablegenerator.domain.dto.request.FacultyUpdateRequest;
+import com.example.timetablegenerator.domain.dto.request.FacultyRequest;
 import com.example.timetablegenerator.domain.dto.response.FacultyResponse;
 
 import java.util.List;
@@ -14,9 +13,9 @@ public interface FacultyService {
 
     Optional<FacultyResponse> getFaculty(Long facultyId);
 
-    FacultyResponse createFaculty(FacultyCreateRequest request);
+    FacultyResponse createFaculty(FacultyRequest request);
 
-    FacultyResponse updateFaculty(Long facultyId, FacultyUpdateRequest request);
+    FacultyResponse updateFaculty(Long facultyId, FacultyRequest request);
 
     void deleteFaculty(Long facultyId, DeleteMode mode);
 }

@@ -1,8 +1,11 @@
 package com.example.timetablegenerator.domain.dto.request;
 
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 
 public record SubjectRequest(
+
         @NotBlank(message = "Subject name is required")
         String name,
 
@@ -17,9 +20,8 @@ public record SubjectRequest(
         @Positive(message = "Hours per week must be positive")
         Integer hoursPerWeek,
 
-        @NotNull(message = "Faculty ID is required")
-        @Positive(message = "Faculty ID must be positive")
-        Long facultyId
-) {
-}
+        @NotNull(message = "Major ID is required")
+        @Positive(message = "Major ID must be positive")
+        Long majorId
 
+) {}

@@ -1,8 +1,7 @@
 package com.example.timetablegenerator.controllers;
 
 import com.example.timetablegenerator.domain.dto.request.DeleteMode;
-import com.example.timetablegenerator.domain.dto.request.FacultyCreateRequest;
-import com.example.timetablegenerator.domain.dto.request.FacultyUpdateRequest;
+import com.example.timetablegenerator.domain.dto.request.FacultyRequest;
 import com.example.timetablegenerator.domain.dto.response.FacultyResponse;
 import com.example.timetablegenerator.exceptions.NotFoundException;
 import com.example.timetablegenerator.services.FacultyService;
@@ -37,13 +36,13 @@ public class FacultyController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public FacultyResponse createFaculty(@Valid @RequestBody FacultyCreateRequest request) {
+    public FacultyResponse createFaculty(@Valid @RequestBody FacultyRequest request) {
         log.info("Creating new faculty: {} ({})", request.name(), request.shortName());
         return facultyService.createFaculty(request);
     }
 
     @PutMapping("/{id}")
-    public FacultyResponse updateFaculty(@PathVariable Long id, @Valid @RequestBody FacultyUpdateRequest request) {
+    public FacultyResponse updateFaculty(@PathVariable Long id, @Valid @RequestBody FacultyRequest request) {
         log.info("Updating faculty ID: {} → new name: {}", id, request.name());
         return facultyService.updateFaculty(id, request);
     }
