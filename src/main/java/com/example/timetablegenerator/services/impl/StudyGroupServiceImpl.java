@@ -4,6 +4,7 @@
     import com.example.timetablegenerator.domain.dto.response.StudyGroupResponse;
     import com.example.timetablegenerator.domain.entities.Assignment;
     import com.example.timetablegenerator.domain.entities.Lesson;
+    import com.example.timetablegenerator.domain.entities.Major;
     import com.example.timetablegenerator.domain.entities.StudyGroup;
     import com.example.timetablegenerator.exceptions.NotFoundException;
     import com.example.timetablegenerator.mappers.StudyGroupMapper;
@@ -44,7 +45,7 @@
             facultyRepository.findById(facultyId)
                     .orElseThrow(() -> new NotFoundException("Faculty not found with id: " + facultyId));
 
-            return groupRepository.findByFacultyId(facultyId).stream()
+            return groupRepository.findByMajorDepartmentFacultyId(facultyId).stream()
                     .map(groupMapper::toResponse)
                     .toList();
         }
@@ -60,10 +61,10 @@
         public StudyGroupResponse createGroup(StudyGroupRequest request) {
             StudyGroup group = groupMapper.toEntity(request);
 
-            if (request.facultyId() != null) {
-                var faculty = facultyRepository.findById(request.facultyId())
-                        .orElseThrow(() -> new NotFoundException("Faculty not found with id: " + request.facultyId()));
-                group.setFaculty(faculty);
+            if (request.majorId() != null) {
+                var faculty = facultyRepository.findById(request.majorId())
+                        .orElseThrow(() -> new NotFoundException("Faculty not found with id: " + request.majorId()));
+                group.setMajor(Major.builder().build());
             }
 
             return groupMapper.toResponse(groupRepository.save(group));
@@ -77,10 +78,10 @@
 
             groupMapper.updateEntityFromRequest(request, group);
 
-            if (request.facultyId() != null) {
-                var faculty = facultyRepository.findById(request.facultyId())
-                        .orElseThrow(() -> new NotFoundException("Faculty not found with id: " + request.facultyId()));
-                group.setFaculty(faculty);
+            if (request.majorId() != null) {
+                var faculty = facultyRepository.findById(request.majorId())
+                        .orElseThrow(() -> new NotFoundException("Faculty not found with id: " + request.majorId()));
+                group.setMajor(Major.builder().build());
             }
 
             return groupMapper.toResponse(groupRepository.save(group));
