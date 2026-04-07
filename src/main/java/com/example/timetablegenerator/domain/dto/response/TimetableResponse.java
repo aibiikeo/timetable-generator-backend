@@ -1,6 +1,6 @@
 package com.example.timetablegenerator.domain.dto.response;
 
-import com.example.timetablegenerator.domain.entities.SemesterType;
+import com.example.timetablegenerator.domain.entities.Semester;
 import com.example.timetablegenerator.domain.entities.TimetableStatus;
 
 import java.time.LocalDateTime;
@@ -12,7 +12,7 @@ public record TimetableResponse(
         String name,
         Integer academicYearStart,
         Integer academicYearEnd,
-        SemesterType semester,
+        Semester semester,
         Integer version,
         LocalDateTime createdAt,
         TimetableStatus status,

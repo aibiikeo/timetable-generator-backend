@@ -30,7 +30,7 @@ public class Timetable {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private SemesterType semester;
+    private Semester semester;
 
     @Column(nullable = false)
     @Builder.Default

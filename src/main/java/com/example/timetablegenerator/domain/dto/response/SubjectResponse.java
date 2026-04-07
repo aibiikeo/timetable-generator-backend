@@ -14,7 +14,6 @@ public record SubjectResponse(
         Long departmentId,
         String departmentName,
         Long facultyId,
-        String facultyName,
-        String facultyShortName
+        String facultyName
 ) {
 }

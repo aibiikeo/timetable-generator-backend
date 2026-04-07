@@ -22,7 +22,6 @@ public interface StudyGroupMapper {
     @Mapping(target = "departmentName", source = "major.department.name")
     @Mapping(target = "facultyId", source = "major.department.faculty.id")
     @Mapping(target = "facultyName", source = "major.department.faculty.name")
-    @Mapping(target = "facultyShortName", source = "major.department.faculty.shortName")
     StudyGroupResponse toResponse(StudyGroup entity);
 
     @Mapping(target = "id", ignore = true)

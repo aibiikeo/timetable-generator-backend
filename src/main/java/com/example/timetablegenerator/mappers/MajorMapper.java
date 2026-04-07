@@ -18,7 +18,6 @@ public interface MajorMapper {
     @Mapping(target = "departmentName", source = "department.name")
     @Mapping(target = "facultyId", source = "department.faculty.id")
     @Mapping(target = "facultyName", source = "department.faculty.name")
-    @Mapping(target = "facultyShortName", source = "department.faculty.shortName")
     MajorResponse toResponse(Major entity);
 
     @Mapping(target = "id", ignore = true)

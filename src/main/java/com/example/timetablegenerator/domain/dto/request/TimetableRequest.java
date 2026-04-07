@@ -1,6 +1,6 @@
 package com.example.timetablegenerator.domain.dto.request;
 
-import com.example.timetablegenerator.domain.entities.SemesterType;
+import com.example.timetablegenerator.domain.entities.Semester;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
@@ -15,7 +15,7 @@ public record TimetableRequest(
         Integer academicYearStart,
 
         @NotNull(message = "Semester is required")
-        SemesterType semester,
+        Semester semester,
 
         @NotNull(message = "Assignments are required")
         List<@Valid AssignmentRequest> assignments,

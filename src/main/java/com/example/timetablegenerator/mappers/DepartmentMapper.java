@@ -16,7 +16,6 @@ public interface DepartmentMapper {
 
     @Mapping(target = "facultyId", source = "faculty.id")
     @Mapping(target = "facultyName", source = "faculty.name")
-    @Mapping(target = "facultyShortName", source = "faculty.shortName")
     DepartmentResponse toResponse(Department entity);
 
     @Mapping(target = "id", ignore = true)

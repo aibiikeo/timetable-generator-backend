@@ -1,6 +1,6 @@
 package com.example.timetablegenerator.domain.entities;
 
-public enum SemesterType {
+public enum Semester {
     FALL,
     SPRING
 }

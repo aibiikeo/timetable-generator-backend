@@ -6,10 +6,6 @@ import jakarta.validation.constraints.Size;
 public record FacultyRequest(
 
         @NotBlank(message = "Faculty name is required")
-        String name,
-
-        @NotBlank(message = "Faculty short name is required")
-        @Size(max = 10, message = "Short name must not exceed 10 characters")
-        String shortName
+        String name
 
 ) {}

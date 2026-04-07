@@ -13,7 +13,6 @@ public record StudyGroupResponse(
         Long departmentId,
         String departmentName,
         Long facultyId,
-        String facultyName,
-        String facultyShortName
+        String facultyName
 ) {
 }

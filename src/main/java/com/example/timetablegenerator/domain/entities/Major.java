@@ -23,6 +23,8 @@ public class Major {
     @Column(nullable = false)
     private String name;
 
+    private String shortName;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Degree degree;

@@ -1,6 +1,6 @@
 package com.example.timetablegenerator.repositories;
 
-import com.example.timetablegenerator.domain.entities.SemesterType;
+import com.example.timetablegenerator.domain.entities.Semester;
 import com.example.timetablegenerator.domain.entities.Timetable;
 import com.example.timetablegenerator.domain.entities.TimetableStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,7 +14,7 @@ import java.util.Optional;
 public interface TimetableRepository extends JpaRepository<Timetable, Long> {
 
     @Query("SELECT MAX(t.version) FROM Timetable t WHERE t.academicYearStart = :yearStart AND t.semester = :semester")
-    Integer findMaxVersion(Integer yearStart, SemesterType semester);
+    Integer findMaxVersion(Integer yearStart, Semester semester);
 
     List<Timetable> findAllByOrderByCreatedAtDesc();
 
@@ -24,11 +24,11 @@ public interface TimetableRepository extends JpaRepository<Timetable, Long> {
 
     List<Timetable> findAllByAcademicYearStartAndSemesterOrderByVersionDesc(
             Integer academicYearStart,
-            SemesterType semester
+            Semester semester
     );
 
     Optional<Timetable> findFirstByAcademicYearStartAndSemesterOrderByVersionDesc(
             Integer academicYearStart,
-            SemesterType semester
+            Semester semester
     );
 }

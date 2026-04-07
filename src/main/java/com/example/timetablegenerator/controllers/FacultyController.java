@@ -37,7 +37,7 @@ public class FacultyController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public FacultyResponse createFaculty(@Valid @RequestBody FacultyRequest request) {
-        log.info("Creating new faculty: {} ({})", request.name(), request.shortName());
+        log.info("Creating new faculty: {} ", request.name());
         return facultyService.createFaculty(request);
     }
 

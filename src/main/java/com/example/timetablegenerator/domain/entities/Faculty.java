@@ -16,6 +16,4 @@ public class Faculty {
 
     @Column(nullable = false)
     private String name;
-
-    private String shortName;
 }
