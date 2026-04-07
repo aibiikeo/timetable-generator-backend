@@ -1,12 +1,14 @@
 package com.example.timetablegenerator.domain.entities;
 
 import jakarta.persistence.Embeddable;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.DayOfWeek;
 
 @Embeddable
-@Data
+@Getter
+@Setter
 public class TimeSlotExclusion {
     private DayOfWeek day;
     private String startTime;

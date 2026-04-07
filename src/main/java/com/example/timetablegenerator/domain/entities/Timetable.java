@@ -18,7 +18,7 @@ import java.util.Map;
 @AllArgsConstructor
 @Builder
 @ToString(exclude = {"assignments", "lessons"})
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@EqualsAndHashCode(of = "id")
 public class Timetable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

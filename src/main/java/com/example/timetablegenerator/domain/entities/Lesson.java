@@ -16,7 +16,7 @@ import java.util.Set;
 @AllArgsConstructor
 @Builder
 @ToString(exclude = {"timetable", "assignment", "subject", "teacher", "groups", "room"})
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@EqualsAndHashCode(of = "id")
 public class Lesson {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
