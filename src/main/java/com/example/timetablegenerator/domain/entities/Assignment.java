@@ -11,10 +11,13 @@ import java.util.Set;
 
 @Entity
 @Table(name = "assignments")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@ToString(exclude = {"timetable", "subject", "teacher", "groups", "lessons"})
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Assignment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

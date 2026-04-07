@@ -1,11 +1,7 @@
 package com.example.timetablegenerator.domain.entities;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Entity
 @Table(name = "departments")
@@ -14,6 +10,8 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@ToString(exclude = {"faculty"})
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Department {
 
     @Id

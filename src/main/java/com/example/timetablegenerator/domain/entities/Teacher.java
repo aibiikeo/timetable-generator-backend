@@ -8,10 +8,13 @@ import java.util.Set;
 
 @Entity
 @Table(name = "teachers")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@ToString(exclude = {"subjects"})
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Teacher {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)

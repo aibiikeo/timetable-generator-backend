@@ -6,14 +6,19 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 @Entity
 @Table(name = "timetables")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@ToString(exclude = {"assignments", "lessons"})
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Timetable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

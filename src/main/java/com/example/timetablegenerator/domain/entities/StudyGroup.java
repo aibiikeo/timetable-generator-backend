@@ -8,10 +8,13 @@ import java.util.Set;
 
 @Entity
 @Table(name = "study_groups")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@ToString(exclude = {"major", "subjects"})
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class StudyGroup {
 
     @Id

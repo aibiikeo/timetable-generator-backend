@@ -3,17 +3,20 @@ package com.example.timetablegenerator.domain.entities;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalTime;
 import java.time.DayOfWeek;
+import java.time.LocalTime;
 import java.util.HashSet;
 import java.util.Set;
 
 @Entity
 @Table(name = "lessons")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@ToString(exclude = {"timetable", "assignment", "subject", "teacher", "groups", "room"})
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Lesson {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)

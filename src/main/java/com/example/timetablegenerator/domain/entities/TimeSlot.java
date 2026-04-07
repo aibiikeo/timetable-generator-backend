@@ -1,14 +1,14 @@
 package com.example.timetablegenerator.domain.entities;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.time.DayOfWeek;
 import java.time.LocalTime;
 
-/**
- * Представляет временной слот для занятий.
- * Может быть общим для всех дней или привязан к конкретному дню недели.
- */
 @Entity
 @Table(name = "time_slots")
 @Data
