@@ -10,6 +10,7 @@ import com.example.timetablegenerator.exceptions.NotFoundException;
 import com.example.timetablegenerator.generation.ConflictGraphBuilder;
 import com.example.timetablegenerator.generation.GraphColoringScheduler;
 import com.example.timetablegenerator.generation.LessonVertex;
+import com.example.timetablegenerator.mappers.AssignmentMapper;
 import com.example.timetablegenerator.repositories.*;
 import com.example.timetablegenerator.services.GenerationService;
 import com.example.timetablegenerator.utils.HoursSplittingUtils;
@@ -17,12 +18,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.example.timetablegenerator.domain.entities.TimeSlotExclusion;
-import java.util.stream.Collectors;
 
 import java.time.DayOfWeek;
 import java.time.LocalTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -39,6 +39,7 @@ public class GenerationServiceImpl implements GenerationService {
     private final TimeSlotRepository timeSlotRepository;
     private final ConflictGraphBuilder conflictGraphBuilder;
     private final GraphColoringScheduler graphColoringScheduler;
+    private final AssignmentMapper assignmentMapper;
 
     @Override
     @Transactional
@@ -77,7 +78,7 @@ public class GenerationServiceImpl implements GenerationService {
         Assignment saved = assignmentRepository.save(assignment);
 
         List<String> splittingOptions = HoursSplittingUtils.generateSplittingOptionsForUI(request.hoursPerWeek());
-        return convertToResponse(saved, splittingOptions);
+        return convertToResponse(saved);
     }
 
     @Override
@@ -313,40 +314,8 @@ public class GenerationServiceImpl implements GenerationService {
         return true;
     }
 
-    private AssignmentResponse convertToResponse(Assignment assignment, List<String> splittingOptions) {
-        List<Long> groupIds = assignment.getGroups().stream()
-                .map(StudyGroup::getId)
-                .sorted()
-                .toList();
-
-        List<String> groupNames = assignment.getGroups().stream()
-                .map(StudyGroup::getName)
-                .sorted()
-                .toList();
-
-        String placementStatus = assignment.getPlacementStatus() != null ?
-                assignment.getPlacementStatus().name() : "PENDING";
-
-        return new AssignmentResponse(
-                assignment.getId(),
-                assignment.getSubject().getId(),
-                assignment.getSubject().getName(),
-                assignment.getTeacher().getId(),
-                assignment.getTeacher().getFullName(),
-                groupIds,
-                groupNames,
-                assignment.getHoursPerWeek(),
-                assignment.getShift(),
-                assignment.getRoomTypeRequired(),
-                assignment.getHoursSplitting(),
-                assignment.getGeneratedLessonsCount() != null ? assignment.getGeneratedLessonsCount() : 0,
-                assignment.getHoursPerWeek(),
-                placementStatus,
-                assignment.getFailureReason(),
-                splittingOptions,
-                assignment.getHoursSplitting(),
-                assignment.getRequiresManualInput()
-        );
+    private AssignmentResponse convertToResponse(Assignment assignment) {
+        return assignmentMapper.toResponse(assignment);
     }
 
     private List<TimeSlotExclusion> mapExcludedTimeSlots(List<AssignmentRequest.TimeSlotExclusion> dtos) {
