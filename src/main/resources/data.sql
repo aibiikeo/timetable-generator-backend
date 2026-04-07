@@ -397,50 +397,21 @@ INSERT INTO timetables (
 -- =========================================================
 -- TIME SLOTS
 -- =========================================================
-INSERT INTO time_slots (id, day_of_week, slot_order, start_time, end_time, is_lunch, description) VALUES
-                                                                                                      (1,  'MONDAY',    1, '08:00:00', '09:20:00', false, '1st slot'),
-                                                                                                      (2,  'MONDAY',    2, '09:30:00', '10:50:00', false, '2nd slot'),
-                                                                                                      (3,  'MONDAY',    3, '11:00:00', '12:20:00', false, '3rd slot'),
-                                                                                                      (4,  'MONDAY',    4, '12:20:00', '13:00:00', true,  'Lunch'),
-                                                                                                      (5,  'MONDAY',    5, '13:00:00', '14:20:00', false, '4th slot'),
-                                                                                                      (6,  'MONDAY',    6, '14:30:00', '15:50:00', false, '5th slot'),
-                                                                                                      (7,  'MONDAY',    7, '16:00:00', '17:20:00', false, '6th slot'),
-
-                                                                                                      (8,  'TUESDAY',   1, '08:00:00', '09:20:00', false, '1st slot'),
-                                                                                                      (9,  'TUESDAY',   2, '09:30:00', '10:50:00', false, '2nd slot'),
-                                                                                                      (10, 'TUESDAY',   3, '11:00:00', '12:20:00', false, '3rd slot'),
-                                                                                                      (11, 'TUESDAY',   4, '12:20:00', '13:00:00', true,  'Lunch'),
-                                                                                                      (12, 'TUESDAY',   5, '13:00:00', '14:20:00', false, '4th slot'),
-                                                                                                      (13, 'TUESDAY',   6, '14:30:00', '15:50:00', false, '5th slot'),
-                                                                                                      (14, 'TUESDAY',   7, '16:00:00', '17:20:00', false, '6th slot'),
-
-                                                                                                      (15, 'WEDNESDAY', 1, '08:00:00', '09:20:00', false, '1st slot'),
-                                                                                                      (16, 'WEDNESDAY', 2, '09:30:00', '10:50:00', false, '2nd slot'),
-                                                                                                      (17, 'WEDNESDAY', 3, '11:00:00', '12:20:00', false, '3rd slot'),
-                                                                                                      (18, 'WEDNESDAY', 4, '12:20:00', '13:00:00', true,  'Lunch'),
-                                                                                                      (19, 'WEDNESDAY', 5, '13:00:00', '14:20:00', false, '4th slot'),
-                                                                                                      (20, 'WEDNESDAY', 6, '14:30:00', '15:50:00', false, '5th slot'),
-                                                                                                      (21, 'WEDNESDAY', 7, '16:00:00', '17:20:00', false, '6th slot'),
-
-                                                                                                      (22, 'THURSDAY',  1, '08:00:00', '09:20:00', false, '1st slot'),
-                                                                                                      (23, 'THURSDAY',  2, '09:30:00', '10:50:00', false, '2nd slot'),
-                                                                                                      (24, 'THURSDAY',  3, '11:00:00', '12:20:00', false, '3rd slot'),
-                                                                                                      (25, 'THURSDAY',  4, '12:20:00', '13:00:00', true,  'Lunch'),
-                                                                                                      (26, 'THURSDAY',  5, '13:00:00', '14:20:00', false, '4th slot'),
-                                                                                                      (27, 'THURSDAY',  6, '14:30:00', '15:50:00', false, '5th slot'),
-                                                                                                      (28, 'THURSDAY',  7, '16:00:00', '17:20:00', false, '6th slot'),
-
-                                                                                                      (29, 'FRIDAY',    1, '08:00:00', '09:20:00', false, '1st slot'),
-                                                                                                      (30, 'FRIDAY',    2, '09:30:00', '10:50:00', false, '2nd slot'),
-                                                                                                      (31, 'FRIDAY',    3, '11:00:00', '12:20:00', false, '3rd slot'),
-                                                                                                      (32, 'FRIDAY',    4, '12:20:00', '13:00:00', true,  'Lunch'),
-                                                                                                      (33, 'FRIDAY',    5, '13:00:00', '14:20:00', false, '4th slot'),
-                                                                                                      (34, 'FRIDAY',    6, '14:30:00', '15:50:00', false, '5th slot'),
-                                                                                                      (35, 'FRIDAY',    7, '16:00:00', '17:20:00', false, '6th slot'),
-
-                                                                                                      (36, 'SATURDAY',  1, '08:00:00', '09:20:00', false, '1st slot'),
-                                                                                                      (37, 'SATURDAY',  2, '09:30:00', '10:50:00', false, '2nd slot'),
-                                                                                                      (38, 'SATURDAY',  3, '11:00:00', '12:20:00', false, '3rd slot');
+INSERT INTO time_slots (day_of_week, slot_order, start_time, end_time, is_lunch, description) VALUES
+                                                                                                  (NULL, 1,  '08:00:00', '08:40:00', false, '1st lesson'),
+                                                                                                  (NULL, 2,  '08:45:00', '09:25:00', false, '2nd lesson'),
+                                                                                                  (NULL, 3,  '09:30:00', '10:10:00', false, '3rd lesson'),
+                                                                                                  (NULL, 4,  '10:15:00', '10:55:00', false, '4th lesson'),
+                                                                                                  (NULL, 5,  '11:00:00', '11:40:00', false, '5th lesson'),
+                                                                                                  (NULL, 6,  '11:45:00', '12:25:00', false, '6th lesson'),
+                                                                                                  (NULL, 7,  '12:30:00', '13:10:00', false, '7th lesson'),
+                                                                                                  (NULL, 8,  '13:15:00', '13:55:00', false, '8th lesson'),
+                                                                                                  (NULL, 9,  '14:00:00', '14:40:00', false, '9th lesson'),
+                                                                                                  (NULL, 10, '14:45:00', '15:25:00', false, '10th lesson'),
+                                                                                                  (NULL, 11, '15:30:00', '16:10:00', false, '11th lesson'),
+                                                                                                  (NULL, 12, '16:15:00', '16:55:00', false, '12th lesson'),
+                                                                                                  (NULL, 13, '17:00:00', '17:40:00', false, '13th lesson'),
+                                                                                                  (NULL, 14, '17:45:00', '18:25:00', false, '14th lesson');
 
 -- =========================================================
 -- USERS
