@@ -2,7 +2,10 @@ package com.example.timetablegenerator.domain.dto.request;
 
 import com.example.timetablegenerator.domain.entities.RoomType;
 import com.example.timetablegenerator.domain.entities.Shift;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
 
 import java.time.DayOfWeek;
 import java.util.List;
@@ -15,20 +18,20 @@ public record AssignmentRequest(
         @NotNull(message = "Shift is required") Shift shift,
         @NotNull(message = "Required room type is required") RoomType roomTypeRequired,
 
-        // Разделение часов - опционально, если не указано, система сама выберет
-        @Pattern(regexp = "^([2-4]\\+)*[2-4]$|^$",
-                message = "Use format like '4+4' or '3+3+2' with numbers 2, 3, 4")
+        @Pattern(
+                regexp = "^([1-4]\\+)*[1-4]$|^$",
+                message = "Use format like '4+1' or '3+2+1' with numbers 1, 2, 3, 4"
+        )
         String hoursSplitting,
 
-        // Новые поля для настроек
-        List<DayOfWeek> excludedDays,           // Дни, когда нельзя проводить
-        List<TimeSlotExclusion> excludedTimeSlots, // Конкретные время и дни
-        List<DayOfWeek> preferredDays,          // Предпочтительные дни преподавателя
-        Long specificRoomId                     // Конкретная аудитория (если выбрана)
+        List<DayOfWeek> excludedDays,
+        List<TimeSlotExclusion> excludedTimeSlots,
+        List<DayOfWeek> preferredDays,
+        Long specificRoomId
 ) {
     public record TimeSlotExclusion(
             DayOfWeek day,
-            String startTime,  // "08:00"
-            String endTime     // "10:00"
+            String startTime,
+            String endTime
     ) {}
 }

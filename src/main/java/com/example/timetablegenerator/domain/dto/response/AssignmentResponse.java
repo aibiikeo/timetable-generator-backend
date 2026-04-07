@@ -1,5 +1,6 @@
 package com.example.timetablegenerator.domain.dto.response;
 
+import com.example.timetablegenerator.domain.entities.Degree;
 import com.example.timetablegenerator.domain.entities.RoomType;
 import com.example.timetablegenerator.domain.entities.Shift;
 
@@ -13,6 +14,7 @@ public record AssignmentResponse(
         String teacherName,
         List<Long> groupIds,
         List<String> groupNames,
+
         Integer hoursPerWeek,
         Shift shift,
         RoomType roomTypeRequired,
@@ -20,10 +22,18 @@ public record AssignmentResponse(
         int generatedLessonsCount,
         int requiredLessonsCount,
 
-        // Новые поля для отображения статуса
-        String placementStatus,      // "PENDING", "SCHEDULED", "FAILED"
-        String failureReason,        // Почему не удалось расставить
-        List<String> splittingOptions, // Варианты разделения для UI
-        String selectedSplitting,    // Выбранный вариант
-        boolean requiresManualInput  // Нужно ли ручное вмешательство
-) {}
+        String placementStatus,
+        String failureReason,
+        List<String> splittingOptions,
+        String selectedSplitting,
+        boolean requiresManualInput,
+
+        Long majorId,
+        String majorName,
+        Degree degree,
+        Long departmentId,
+        String departmentName,
+        Long facultyId,
+        String facultyName
+) {
+}
