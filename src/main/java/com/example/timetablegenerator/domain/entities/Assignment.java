@@ -58,7 +58,7 @@ public class Assignment {
     private RoomType roomTypeRequired = RoomType.ANY;
 
     @Column(name = "hours_splitting")
-    private String hoursSplitting; // Формат: "4+4" или "3+3+2"
+    private String hoursSplitting;
 
     @Column(name = "generated_lessons_count")
     @Builder.Default

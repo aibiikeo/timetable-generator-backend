@@ -79,7 +79,6 @@ public class RoomServiceImpl implements RoomService {
                 .orElseThrow(() -> new NotFoundException("Room not found with id: " + roomId));
 
         if (!lessonRepository.findByRoom_IdAndTimetableId(roomId, roomId).isEmpty()) {
-            // этот метод не подходит для глобальной проверки, так что лучше мягко
         }
 
         roomRepository.delete(room);

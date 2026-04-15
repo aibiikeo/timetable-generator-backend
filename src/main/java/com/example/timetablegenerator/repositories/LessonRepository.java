@@ -39,7 +39,6 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
 
     List<Lesson> findBySubjectId(Long subjectId);
 
-    // Методы проверки конфликтов
     boolean existsByTimetableIdAndTeacherIdAndDayOfWeekAndStartTime(
             Long timetableId, Long teacherId, DayOfWeek dayOfWeek, LocalTime startTime);
 

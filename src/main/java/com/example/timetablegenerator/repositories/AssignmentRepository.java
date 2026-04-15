@@ -15,12 +15,10 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
     List<Assignment> findByTimetableId(Long versionId);
     Optional<Assignment> findByIdAndTimetableId(Long id, Long versionId);
 
-    // Удалить группу из всех assignments
     @Modifying
     @Query(value = "DELETE FROM assignment_groups WHERE group_id = :groupId", nativeQuery = true)
     void removeGroupFromAllAssignments(@Param("groupId") Long groupId);
 
-    // Найти assignments по groupId (для проверки)
     @Query("SELECT a FROM Assignment a JOIN a.groups g WHERE g.id = :groupId")
     List<Assignment> findByGroupId(@Param("groupId") Long groupId);
 

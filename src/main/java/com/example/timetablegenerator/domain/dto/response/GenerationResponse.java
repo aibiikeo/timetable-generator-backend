@@ -11,9 +11,9 @@ import java.util.List;
 public class GenerationResponse {
     private Long timetableId;
     private String timetableName;
-    private int totalVertices;           // общее количество вершин (блоков занятий)
-    private int placedLessonsCount;       // сколько успешно размещено
-    private int failedVerticesCount;      // сколько не удалось разместить
-    private TimetableStatus status;       // итоговый статус расписания
-    private List<UnplacedLesson> failedAssignments; // детализация по неудачным назначениям
+    private int totalVertices;
+    private int placedLessonsCount;
+    private int failedVerticesCount;
+    private TimetableStatus status;
+    private List<UnplacedLesson> failedAssignments;
 }

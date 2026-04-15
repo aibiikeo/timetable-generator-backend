@@ -7,8 +7,8 @@ import com.example.timetablegenerator.domain.dto.response.GenerationResponse;
 import com.example.timetablegenerator.domain.dto.response.UnplacedLesson;
 import com.example.timetablegenerator.domain.entities.*;
 import com.example.timetablegenerator.exceptions.NotFoundException;
-import com.example.timetablegenerator.generation.ConflictGraphBuilder;
-import com.example.timetablegenerator.generation.GraphColoringScheduler;
+import com.example.timetablegenerator.generation.AssignmentLessonExpander;
+import com.example.timetablegenerator.generation.CpSatScheduler;
 import com.example.timetablegenerator.generation.LessonVertex;
 import com.example.timetablegenerator.mappers.AssignmentMapper;
 import com.example.timetablegenerator.repositories.*;
@@ -37,9 +37,19 @@ public class GenerationServiceImpl implements GenerationService {
     private final RoomRepository roomRepository;
     private final LessonRepository lessonRepository;
     private final TimeSlotRepository timeSlotRepository;
-    private final ConflictGraphBuilder conflictGraphBuilder;
-    private final GraphColoringScheduler graphColoringScheduler;
+
+    private final AssignmentLessonExpander assignmentLessonExpander;
+    private final CpSatScheduler cpSatScheduler;
     private final AssignmentMapper assignmentMapper;
+
+    private static final List<DayOfWeek> TEACHING_DAYS = List.of(
+            DayOfWeek.MONDAY,
+            DayOfWeek.TUESDAY,
+            DayOfWeek.WEDNESDAY,
+            DayOfWeek.THURSDAY,
+            DayOfWeek.FRIDAY,
+            DayOfWeek.SATURDAY
+    );
 
     @Override
     @Transactional
@@ -78,6 +88,8 @@ public class GenerationServiceImpl implements GenerationService {
         Assignment saved = assignmentRepository.save(assignment);
 
         List<String> splittingOptions = HoursSplittingUtils.generateSplittingOptionsForUI(request.hoursPerWeek());
+        log.debug("Available splitting options for {} hours: {}", request.hoursPerWeek(), splittingOptions);
+
         return convertToResponse(saved);
     }
 
@@ -99,37 +111,60 @@ public class GenerationServiceImpl implements GenerationService {
 
         if (mode == GenerationMode.NEW) {
             lessonRepository.deleteAll(lessonRepository.findByTimetableId(timetableId));
+            log.info("Generation mode NEW: existing lessons deleted for timetableId={}", timetableId);
+        } else {
+            log.info("Generation mode APPEND: existing lessons kept for timetableId={}", timetableId);
         }
 
-        // Загружаем временные слоты для каждого дня
-        Map<DayOfWeek, List<GraphColoringScheduler.TimeSlotInfo>> slotsByDay = new EnumMap<>(DayOfWeek.class);
-        for (DayOfWeek day : DayOfWeek.values()) {
+        Map<DayOfWeek, List<CpSatScheduler.TimeSlotInfo>> slotsByDay = new EnumMap<>(DayOfWeek.class);
+        for (DayOfWeek day : TEACHING_DAYS) {
             List<TimeSlot> dbSlots = timeSlotRepository.findLessonSlotsByDay(day);
-            log.info("Day {}: {} lesson slots", day, dbSlots.size());
-            List<GraphColoringScheduler.TimeSlotInfo> slotInfos = dbSlots.stream()
-                    .map(ts -> new GraphColoringScheduler.TimeSlotInfo(ts.getStartTime(), ts.getEndTime()))
+            List<CpSatScheduler.TimeSlotInfo> slotInfos = dbSlots.stream()
+                    .map(ts -> new CpSatScheduler.TimeSlotInfo(ts.getStartTime(), ts.getEndTime()))
                     .toList();
             slotsByDay.put(day, slotInfos);
+
+            log.info("Generation input: day={} lessonSlots={}", day, slotInfos.size());
         }
 
-        // Строим граф вершин
-        List<LessonVertex> vertices = conflictGraphBuilder.buildVertices(assignments);
-        conflictGraphBuilder.buildConflictGraph(vertices);
-
+        List<LessonVertex> vertices = assignmentLessonExpander.buildVertices(assignments);
         List<Room> allRooms = roomRepository.findAll();
 
-        Map<Long, GraphColoringScheduler.ScheduledSlot> placement =
-                graphColoringScheduler.schedule(vertices, allRooms, slotsByDay);
+        log.info(
+                "Generation input summary: timetableId={}, mode={}, assignments={}, vertices={}, rooms={}",
+                timetableId,
+                mode,
+                assignments.size(),
+                vertices.size(),
+                allRooms.size()
+        );
 
-        List<Lesson> lessonsToSave = new ArrayList<>();
+        long startedAt = System.currentTimeMillis();
+        CpSatScheduler.SchedulingResult schedulingResult =
+                cpSatScheduler.schedule(vertices, allRooms, slotsByDay);
+        long elapsedMs = System.currentTimeMillis() - startedAt;
+
+        Map<Long, CpSatScheduler.ScheduledSlot> placement = schedulingResult.placed();
+        Set<Long> unplacedVertexIds = schedulingResult.unplacedVertexIds();
+
+        log.info(
+                "Generation solver result: timetableId={}, placedVertices={}, unplacedVertices={}, elapsedMs={}",
+                timetableId,
+                placement.size(),
+                unplacedVertexIds.size(),
+                elapsedMs
+        );
+
         Map<Long, Assignment> assignmentMap = assignments.stream()
                 .collect(Collectors.toMap(Assignment::getId, a -> a));
 
+        List<Lesson> lessonsToSave = new ArrayList<>();
         int placedCount = 0;
         int failedCount = 0;
 
         for (LessonVertex vertex : vertices) {
-            GraphColoringScheduler.ScheduledSlot slot = placement.get(vertex.getId());
+            CpSatScheduler.ScheduledSlot slot = placement.get(vertex.getId());
+
             if (slot == null) {
                 failedCount++;
                 continue;
@@ -137,7 +172,7 @@ public class GenerationServiceImpl implements GenerationService {
 
             Assignment assignment = assignmentMap.get(vertex.getAssignmentId());
             if (assignment == null) {
-                log.error("Assignment not found for vertex id {}", vertex.getAssignmentId());
+                log.error("Assignment not found for vertex assignmentId={}", vertex.getAssignmentId());
                 failedCount++;
                 continue;
             }
@@ -160,14 +195,28 @@ public class GenerationServiceImpl implements GenerationService {
 
         lessonRepository.saveAll(lessonsToSave);
 
-        // Обновляем статусы назначений
-        for (Assignment assignment : assignments) {
-            List<Lesson> assignedLessons = lessonsToSave.stream()
-                    .filter(l -> l.getAssignment().getId().equals(assignment.getId()))
-                    .toList();
+        Map<Long, Integer> assignedHoursByAssignment = new HashMap<>();
+        Map<Long, Integer> assignedLessonsCountByAssignment = new HashMap<>();
 
-            int totalHoursAssigned = assignedLessons.stream()
-                    .mapToInt(Lesson::getDurationHours).sum();
+        for (Lesson lesson : lessonsToSave) {
+            Long assignmentId = lesson.getAssignment().getId();
+            assignedHoursByAssignment.merge(assignmentId, lesson.getDurationHours(), Integer::sum);
+            assignedLessonsCountByAssignment.merge(assignmentId, 1, Integer::sum);
+        }
+
+        Map<Long, Long> failedVerticesByAssignment = new HashMap<>();
+        for (LessonVertex vertex : vertices) {
+            if (unplacedVertexIds.contains(vertex.getId()) || !placement.containsKey(vertex.getId())) {
+                failedVerticesByAssignment.merge(vertex.getAssignmentId(), 1L, Long::sum);
+            }
+        }
+
+        List<UnplacedLesson> failedAssignments = new ArrayList<>();
+
+        for (Assignment assignment : assignments) {
+            int totalHoursAssigned = assignedHoursByAssignment.getOrDefault(assignment.getId(), 0);
+            int generatedLessonsCount = assignedLessonsCountByAssignment.getOrDefault(assignment.getId(), 0);
+            long failedVerticesForAssignment = failedVerticesByAssignment.getOrDefault(assignment.getId(), 0L);
 
             if (totalHoursAssigned >= assignment.getHoursPerWeek()) {
                 assignment.setPlacementStatus(PlacementStatus.SCHEDULED);
@@ -175,18 +224,43 @@ public class GenerationServiceImpl implements GenerationService {
                 assignment.setRequiresManualInput(false);
             } else if (totalHoursAssigned > 0) {
                 assignment.setPlacementStatus(PlacementStatus.PARTIAL);
-                assignment.setFailureReason("Only " + totalHoursAssigned + " of " + assignment.getHoursPerWeek() + " hours placed");
+                assignment.setFailureReason(
+                        "Placed %d of %d hours; %d lesson block(s) still unplaced"
+                                .formatted(totalHoursAssigned, assignment.getHoursPerWeek(), failedVerticesForAssignment)
+                );
                 assignment.setRequiresManualInput(true);
             } else {
                 assignment.setPlacementStatus(PlacementStatus.FAILED);
-                assignment.setFailureReason("Could not place any lesson");
+                assignment.setFailureReason(
+                        failedVerticesForAssignment > 0
+                                ? "Could not place any lesson blocks"
+                                : "No feasible placement returned"
+                );
                 assignment.setRequiresManualInput(true);
             }
-            assignment.setGeneratedLessonsCount(assignedLessons.size());
+
+            assignment.setGeneratedLessonsCount(generatedLessonsCount);
             assignmentRepository.save(assignment);
+
+            if (assignment.getPlacementStatus() == PlacementStatus.FAILED
+                    || assignment.getPlacementStatus() == PlacementStatus.PARTIAL) {
+                failedAssignments.add(new UnplacedLesson(
+                        assignment.getId(),
+                        assignment.getFailureReason()
+                ));
+            }
+
+            log.info(
+                    "Assignment generation result: assignmentId={}, status={}, assignedHours={}, hoursPerWeek={}, generatedLessonsCount={}, failedVertices={}",
+                    assignment.getId(),
+                    assignment.getPlacementStatus(),
+                    totalHoursAssigned,
+                    assignment.getHoursPerWeek(),
+                    generatedLessonsCount,
+                    failedVerticesForAssignment
+            );
         }
 
-        // Обновляем статус расписания
         if (failedCount == 0 && placedCount == vertices.size()) {
             timetable.setStatus(TimetableStatus.GENERATED);
         } else if (placedCount > 0) {
@@ -196,13 +270,15 @@ public class GenerationServiceImpl implements GenerationService {
         }
         timetableRepository.save(timetable);
 
-        List<UnplacedLesson> failed = new ArrayList<>();
-        for (Assignment assignment : assignments) {
-            if (assignment.getPlacementStatus() == PlacementStatus.FAILED ||
-                    assignment.getPlacementStatus() == PlacementStatus.PARTIAL) {
-                failed.add(new UnplacedLesson(assignment.getId(), assignment.getFailureReason()));
-            }
-        }
+        log.info(
+                "Generation finished: timetableId={}, timetableStatus={}, totalVertices={}, placedLessons={}, failedVertices={}, failedAssignments={}",
+                timetableId,
+                timetable.getStatus(),
+                vertices.size(),
+                placedCount,
+                failedCount,
+                failedAssignments.size()
+        );
 
         return GenerationResponse.builder()
                 .timetableId(timetableId)
@@ -211,23 +287,22 @@ public class GenerationServiceImpl implements GenerationService {
                 .placedLessonsCount(placedCount)
                 .failedVerticesCount(failedCount)
                 .status(timetable.getStatus())
-                .failedAssignments(failed)
+                .failedAssignments(failedAssignments)
                 .build();
     }
 
     @Override
     @Transactional
     public Map<String, Object> retryFailedAssignments(Long timetableId, Map<Long, String> manualSplittings) {
-        // Обновляем splitting для неудачных назначений
         for (Map.Entry<Long, String> entry : manualSplittings.entrySet()) {
             assignmentRepository.findById(entry.getKey()).ifPresent(a -> {
                 a.setHoursSplitting(entry.getValue());
                 assignmentRepository.save(a);
             });
         }
-        // Перегенерируем всё заново, удаляя существующие уроки
+
         GenerationResponse response = generateTimetable(timetableId, GenerationMode.NEW);
-        // Преобразуем GenerationResponse в Map<String, Object> для обратной совместимости, если нужно
+
         return Map.of(
                 "timetableId", response.getTimetableId(),
                 "timetableName", response.getTimetableName(),
@@ -241,16 +316,18 @@ public class GenerationServiceImpl implements GenerationService {
 
     @Override
     @Transactional
-    public boolean manualPlaceLesson(Long timetableId, Long assignmentId,
-                                     String dayOfWeekStr, String startTimeStr,
-                                     Integer durationHours, Long roomId) {
+    public boolean manualPlaceLesson(Long timetableId,
+                                     Long assignmentId,
+                                     String dayOfWeekStr,
+                                     String startTimeStr,
+                                     Integer durationHours,
+                                     Long roomId) {
         DayOfWeek day = DayOfWeek.valueOf(dayOfWeekStr.toUpperCase());
         LocalTime startTime = LocalTime.parse(startTimeStr);
 
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new NotFoundException("Assignment not found"));
 
-        // Проверяем конфликты на весь интервал
         boolean teacherBusy = false;
         for (int h = 0; h < durationHours; h++) {
             LocalTime current = startTime.plusHours(h);
@@ -260,7 +337,9 @@ public class GenerationServiceImpl implements GenerationService {
                 break;
             }
         }
-        if (teacherBusy) return false;
+        if (teacherBusy) {
+            return false;
+        }
 
         for (StudyGroup group : assignment.getGroups()) {
             for (int h = 0; h < durationHours; h++) {
@@ -297,9 +376,11 @@ public class GenerationServiceImpl implements GenerationService {
 
         lessonRepository.save(lesson);
 
-        // Обновляем статус назначения
         List<Lesson> assignedLessons = lessonRepository.findByAssignmentId(assignmentId);
-        int totalHoursAssigned = assignedLessons.stream().mapToInt(Lesson::getDurationHours).sum();
+        int totalHoursAssigned = assignedLessons.stream()
+                .mapToInt(Lesson::getDurationHours)
+                .sum();
+
         if (totalHoursAssigned >= assignment.getHoursPerWeek()) {
             assignment.setPlacementStatus(PlacementStatus.SCHEDULED);
             assignment.setFailureReason(null);
@@ -308,6 +389,7 @@ public class GenerationServiceImpl implements GenerationService {
             assignment.setPlacementStatus(PlacementStatus.PARTIAL);
             assignment.setRequiresManualInput(true);
         }
+
         assignment.setGeneratedLessonsCount(assignedLessons.size());
         assignmentRepository.save(assignment);
 
@@ -319,7 +401,10 @@ public class GenerationServiceImpl implements GenerationService {
     }
 
     private List<TimeSlotExclusion> mapExcludedTimeSlots(List<AssignmentRequest.TimeSlotExclusion> dtos) {
-        if (dtos == null) return null;
+        if (dtos == null) {
+            return null;
+        }
+
         return dtos.stream()
                 .map(dto -> new TimeSlotExclusion(dto.day(), dto.startTime(), dto.endTime()))
                 .collect(Collectors.toList());

@@ -40,7 +40,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (jwt != null) {
                 logger.debug("Attempting to validate JWT token");
 
-                // Проверяем, что токен имеет правильный формат JWT (содержит точки)
                 if (!isValidJwtFormat(jwt)) {
                     logger.warn("Invalid JWT format: token does not contain required parts");
                 } else if (jwtUtils.validateJwtToken(jwt)) {
@@ -68,13 +67,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
             String token = headerAuth.substring(7);
 
-            // Дополнительная валидация формата
             if (!StringUtils.hasText(token)) {
                 logger.warn("Bearer token is empty after 'Bearer ' prefix");
                 return null;
             }
 
-            // Проверяем, что токен не равен строке "null"
             if ("null".equalsIgnoreCase(token.trim())) {
                 logger.warn("Bearer token is literally 'null' string");
                 return null;
@@ -93,7 +90,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return false;
         }
 
-        // JWT должен содержать ровно 2 точки для JWS или 4 для JWE
         long dotCount = token.chars().filter(ch -> ch == '.').count();
         return dotCount == 2 || dotCount == 4;
     }
