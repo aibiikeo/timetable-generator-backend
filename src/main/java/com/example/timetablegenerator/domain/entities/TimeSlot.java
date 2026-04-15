@@ -31,9 +31,6 @@ public class TimeSlot {
     @Column(name = "end_time", nullable = false)
     private LocalTime endTime;
 
-    @Column(name = "is_lunch")
-    private boolean isLunch;
-
     @Column(name = "description")
     private String description;
 }
