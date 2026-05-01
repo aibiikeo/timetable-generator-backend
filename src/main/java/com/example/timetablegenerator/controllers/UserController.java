@@ -1,10 +1,10 @@
 package com.example.timetablegenerator.controllers;
 
-import com.example.timetablegenerator.domain.dto.request.SuperAdminRequest;
 import com.example.timetablegenerator.domain.dto.request.UserRequest;
 import com.example.timetablegenerator.domain.dto.response.UserResponse;
 import com.example.timetablegenerator.exceptions.NotFoundException;
 import com.example.timetablegenerator.services.UserService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
+@Tag(name = "Users")
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
 @Slf4j
@@ -52,13 +53,6 @@ public class UserController {
     public void deleteUser(@PathVariable Long id) {
         log.info("Deleting user ID: {}", id);
         userService.deleteUser(id);
-    }
-
-    @PostMapping("/super-admin")
-    @ResponseStatus(HttpStatus.CREATED)
-    public void createFirstSuperAdmin(@Valid @RequestBody SuperAdminRequest request) {
-        log.warn("Creating first super admin: {}", request.email());
-        userService.createFirstSuperAdmin(request);
     }
 
     @GetMapping("/id-by-email")

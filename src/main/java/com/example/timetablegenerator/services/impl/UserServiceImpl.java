@@ -5,6 +5,7 @@ import com.example.timetablegenerator.domain.dto.request.UserRequest;
 import com.example.timetablegenerator.domain.dto.response.UserResponse;
 import com.example.timetablegenerator.domain.entities.User;
 import com.example.timetablegenerator.domain.entities.UserRole;
+import com.example.timetablegenerator.exceptions.NotFoundException;
 import com.example.timetablegenerator.mappers.UserMapper;
 import com.example.timetablegenerator.repositories.UserRepository;
 import com.example.timetablegenerator.services.UserService;
@@ -52,6 +53,7 @@ public class UserServiceImpl implements UserService {
 
         User user = userMapper.toEntity(request);
         user.setPassword(passwordEncoder.encode(request.password()));
+        user.setRole(request.role());
 
         User saved = userRepository.save(user);
         log.info("User created with ID: {}", saved.getId());
@@ -97,11 +99,19 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void deleteUser(Long userId) {
-        if (!userRepository.existsById(userId)) {
-            throw new IllegalArgumentException("User not found with ID: " + userId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found with id: " + userId));
+
+        if (user.getRole() == UserRole.SUPER_ADMIN) {
+            long superAdminCount = userRepository.countByRole(UserRole.SUPER_ADMIN);
+
+            if (superAdminCount <= 1) {
+                throw new IllegalStateException("Cannot delete the last SUPER_ADMIN user");
+            }
         }
 
-        userRepository.deleteById(userId);
+        userRepository.delete(user);
+
         log.info("User deleted with ID: {}", userId);
     }
 
