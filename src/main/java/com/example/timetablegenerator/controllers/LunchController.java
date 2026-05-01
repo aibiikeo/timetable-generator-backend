@@ -3,6 +3,7 @@ package com.example.timetablegenerator.controllers;
 import com.example.timetablegenerator.domain.dto.request.LunchRequest;
 import com.example.timetablegenerator.domain.dto.response.LunchResponse;
 import com.example.timetablegenerator.services.LunchService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
+@Tag(name = "Lunch")
 @RequestMapping("/api/lunch")
 @RequiredArgsConstructor
 public class LunchController {

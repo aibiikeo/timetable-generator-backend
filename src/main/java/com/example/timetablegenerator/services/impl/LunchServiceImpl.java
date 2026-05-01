@@ -3,21 +3,27 @@ package com.example.timetablegenerator.services.impl;
 import com.example.timetablegenerator.domain.dto.request.LunchRequest;
 import com.example.timetablegenerator.domain.dto.response.LunchResponse;
 import com.example.timetablegenerator.domain.entities.Lunch;
+import com.example.timetablegenerator.exceptions.NotFoundException;
 import com.example.timetablegenerator.repositories.LunchRepository;
 import com.example.timetablegenerator.services.LunchService;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
+@Slf4j
 public class LunchServiceImpl implements LunchService {
 
     private final LunchRepository lunchRepository;
 
     @Override
+    @Transactional
     public LunchResponse create(LunchRequest request) {
         validateTimes(request);
 
@@ -34,11 +40,12 @@ public class LunchServiceImpl implements LunchService {
     }
 
     @Override
+    @Transactional
     public LunchResponse update(Long id, LunchRequest request) {
         validateTimes(request);
 
         Lunch lunch = lunchRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Lunch not found: " + id));
+                .orElseThrow(() -> new NotFoundException("Lunch not found: " + id));
 
         lunch.setTimetableId(request.getTimetableId());
         lunch.setGroupId(request.getGroupId());
@@ -51,17 +58,21 @@ public class LunchServiceImpl implements LunchService {
     }
 
     @Override
+    @Transactional
     public void delete(Long id) {
         if (!lunchRepository.existsById(id)) {
-            throw new EntityNotFoundException("Lunch not found: " + id);
+            throw new NotFoundException("Lunch not found: " + id);
         }
+
         lunchRepository.deleteById(id);
+
+        log.info("Deleted lunch with id={}", id);
     }
 
     @Override
     public LunchResponse getById(Long id) {
         Lunch lunch = lunchRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Lunch not found: " + id));
+                .orElseThrow(() -> new NotFoundException("Lunch not found: " + id));
         return toResponse(lunch);
     }
 
@@ -82,8 +93,11 @@ public class LunchServiceImpl implements LunchService {
     }
 
     @Override
+    @Transactional
     public void deleteByTimetable(Long timetableId) {
         lunchRepository.deleteByTimetableId(timetableId);
+
+        log.info("Deleted lunch settings for timetable={}", timetableId);
     }
 
     private void validateTimes(LunchRequest request) {
