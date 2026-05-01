@@ -1,5 +1,6 @@
 package com.example.timetablegenerator.services;
 
+import com.example.timetablegenerator.domain.dto.request.DeleteMode;
 import com.example.timetablegenerator.domain.dto.request.TimetableRequest;
 import com.example.timetablegenerator.domain.dto.response.TimetableResponse;
 
@@ -16,7 +17,9 @@ public interface TimetableService {
 
     TimetableResponse createTimetable(TimetableRequest request);
 
+    TimetableResponse updateTimetable(Long timetableId, TimetableRequest request);
+
     TimetableResponse publishTimetable(Long timetableId);
 
-    void deleteTimetable(Long timetableId);
+    void deleteTimetable(Long timetableId, DeleteMode mode);
 }

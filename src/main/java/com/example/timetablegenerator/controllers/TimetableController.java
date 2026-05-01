@@ -1,9 +1,11 @@
 package com.example.timetablegenerator.controllers;
 
+import com.example.timetablegenerator.domain.dto.request.DeleteMode;
 import com.example.timetablegenerator.domain.dto.request.TimetableRequest;
 import com.example.timetablegenerator.domain.dto.response.TimetableResponse;
 import com.example.timetablegenerator.exceptions.NotFoundException;
 import com.example.timetablegenerator.services.TimetableService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
+@Tag(name = "Timetables")
 @RequestMapping("/api/timetables")
 @RequiredArgsConstructor
 @Slf4j
@@ -47,6 +50,15 @@ public class TimetableController {
         return timetableService.createTimetable(request);
     }
 
+    @PutMapping("/{id}")
+    public TimetableResponse updateTimetable(
+            @PathVariable Long id,
+            @Valid @RequestBody TimetableRequest request
+    ) {
+        log.info("Updating timetable ID: {} for {} {}", id, request.semester(), request.academicYearStart());
+        return timetableService.updateTimetable(id, request);
+    }
+
     @PostMapping("/{id}/publish")
     @ResponseStatus(HttpStatus.OK)
     public TimetableResponse publishTimetable(@PathVariable Long id) {
@@ -56,8 +68,11 @@ public class TimetableController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteTimetable(@PathVariable Long id) {
-        log.info("Deleting timetable ID: {}", id);
-        timetableService.deleteTimetable(id);
+    public void deleteTimetable(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "SIMPLE") DeleteMode mode
+    ) {
+        log.info("Deleting timetable with ID: {} using mode: {}", id, mode);
+        timetableService.deleteTimetable(id, mode);
     }
 }
