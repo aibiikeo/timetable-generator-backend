@@ -1,0 +1,392 @@
+@baseUrl = http://localhost:8080
+
+### =========================================================
+### GET TESTS
+### Run after auth.http
+### Better after 01-create.http
+### =========================================================
+
+
+### Get all faculties
+GET {{baseUrl}}/api/faculties
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get all faculties", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get created faculty
+GET {{baseUrl}}/api/faculties/{{createdFacultyId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get created faculty", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get all departments
+GET {{baseUrl}}/api/departments
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get all departments", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get created department
+GET {{baseUrl}}/api/departments/{{createdDepartmentId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get created department", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get departments by created faculty
+GET {{baseUrl}}/api/departments/faculty/{{createdFacultyId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get departments by faculty", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get all majors
+GET {{baseUrl}}/api/majors
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get all majors", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get created major
+GET {{baseUrl}}/api/majors/{{createdMajorId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get created major", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get majors by created department
+GET {{baseUrl}}/api/majors/department/{{createdDepartmentId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get majors by department", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get all study groups
+GET {{baseUrl}}/api/groups
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get all study groups", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get created study group
+GET {{baseUrl}}/api/groups/{{createdStudyGroupId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get created study group", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get study groups by created major
+GET {{baseUrl}}/api/groups/major/{{createdMajorId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get study groups by major", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get all teachers
+GET {{baseUrl}}/api/teachers
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get all teachers", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get created teacher
+GET {{baseUrl}}/api/teachers/{{createdTeacherId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get created teacher", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get all subjects
+GET {{baseUrl}}/api/subjects
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get all subjects", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get created subject
+GET {{baseUrl}}/api/subjects/{{createdSubjectId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get created subject", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get subjects by created major
+GET {{baseUrl}}/api/subjects/major/{{createdMajorId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get subjects by major", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get all rooms
+GET {{baseUrl}}/api/rooms
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get all rooms", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get created room
+GET {{baseUrl}}/api/rooms/{{createdRoomId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get created room", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get all timetables
+GET {{baseUrl}}/api/timetables
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get all timetables", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get created timetable
+GET {{baseUrl}}/api/timetables/{{createdTimetableId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get created timetable", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get assignments
+GET {{baseUrl}}/api/timetables/{{createdTimetableId}}/assignments
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get assignments", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get created assignment
+GET {{baseUrl}}/api/timetables/{{createdTimetableId}}/assignments/{{createdAssignmentId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get created assignment", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get lessons
+GET {{baseUrl}}/api/timetables/{{createdTimetableId}}/lessons
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get lessons", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get created lesson
+GET {{baseUrl}}/api/timetables/{{createdTimetableId}}/lessons/{{createdLessonId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get created lesson", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get lessons by assignment
+GET {{baseUrl}}/api/timetables/{{createdTimetableId}}/lessons/assignment/{{createdAssignmentId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get lessons by assignment", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get lessons by teacher
+GET {{baseUrl}}/api/timetables/{{createdTimetableId}}/lessons/teacher/{{createdTeacherId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get lessons by teacher", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get lessons by group
+GET {{baseUrl}}/api/timetables/{{createdTimetableId}}/lessons/group/{{createdStudyGroupId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get lessons by group", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get lessons by room
+GET {{baseUrl}}/api/timetables/{{createdTimetableId}}/lessons/room/{{createdRoomId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get lessons by room", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get time slots
+GET {{baseUrl}}/api/time-slots
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get time slots", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get created time slot
+GET {{baseUrl}}/api/time-slots/{{createdTimeSlotId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get created time slot", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get created lunch
+GET {{baseUrl}}/api/lunch/{{createdLunchId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get created lunch", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get lunch by timetable
+GET {{baseUrl}}/api/lunch/timetable/{{createdTimetableId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get lunch by timetable", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get lunch by timetable and group
+GET {{baseUrl}}/api/lunch/timetable/{{createdTimetableId}}/group/{{createdStudyGroupId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get lunch by timetable and group", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get users
+GET {{baseUrl}}/api/users
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get users", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Get created user
+GET {{baseUrl}}/api/users/{{createdUserId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get created user", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}

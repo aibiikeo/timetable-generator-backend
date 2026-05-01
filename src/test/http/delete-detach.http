@@ -1,0 +1,91 @@
+@baseUrl = http://localhost:8080
+
+### Delete faculty with DETACH mode
+DELETE {{baseUrl}}/api/faculties/{{createdFacultyId}}?mode=DETACH
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Delete faculty with DETACH mode", function () {
+        client.assert(response.status === 204, "Expected 204 No Content");
+    });
+%}
+
+### Delete department with DETACH mode
+DELETE {{baseUrl}}/api/departments/{{createdDepartmentId}}?mode=DETACH
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Delete department with DETACH mode", function () {
+        client.assert(response.status === 204 || response.status === 404, "Expected 204 No Content or 404 Not Found");
+    });
+%}
+
+### Delete major with DETACH mode
+DELETE {{baseUrl}}/api/majors/{{createdMajorId}}?mode=DETACH
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Delete major with DETACH mode", function () {
+        client.assert(response.status === 204 || response.status === 404, "Expected 204 No Content or 404 Not Found");
+    });
+%}
+
+### Delete study group with DETACH mode
+DELETE {{baseUrl}}/api/groups/{{createdStudyGroupId}}?mode=DETACH
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Delete study group with DETACH mode", function () {
+        client.assert(response.status === 204 || response.status === 404, "Expected 204 No Content or 404 Not Found");
+    });
+%}
+
+### Delete teacher with DETACH mode
+DELETE {{baseUrl}}/api/teachers/{{createdTeacherId}}?mode=DETACH
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Delete teacher with DETACH mode", function () {
+        client.assert(response.status === 204 || response.status === 404, "Expected 204 No Content or 404 Not Found");
+    });
+%}
+
+### Delete subject with DETACH mode
+DELETE {{baseUrl}}/api/subjects/{{createdSubjectId}}?mode=DETACH
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Delete subject with DETACH mode", function () {
+        client.assert(response.status === 204 || response.status === 404, "Expected 204 No Content or 404 Not Found");
+    });
+%}
+
+### Delete room with DETACH mode
+DELETE {{baseUrl}}/api/rooms/{{createdRoomId}}?mode=DETACH
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Delete room with DETACH mode", function () {
+        client.assert(response.status === 204 || response.status === 404, "Expected 204 No Content or 404 Not Found");
+    });
+%}
+
+### Delete timetable with DETACH mode
+DELETE {{baseUrl}}/api/timetables/{{createdTimetableId}}?mode=DETACH
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Delete timetable with DETACH mode", function () {
+        client.assert(response.status === 204 || response.status === 404, "Expected 204 No Content or 404 Not Found");
+    });
+%}
+
+### Delete assignment with DETACH mode
+DELETE {{baseUrl}}/api/timetables/{{createdTimetableId}}/assignments/{{createdAssignmentId}}?mode=DETACH
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Delete assignment with DETACH mode", function () {
+        client.assert(response.status === 204 || response.status === 404, "Expected 204 No Content or 404 Not Found");
+    });
+%}

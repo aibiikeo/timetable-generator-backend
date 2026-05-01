@@ -1,0 +1,298 @@
+@baseUrl = http://localhost:8080
+@contentType = application/json
+
+### =========================================================
+### CREATE TEST DATA
+### Run after auth.http
+### =========================================================
+
+
+### Create faculty
+POST {{baseUrl}}/api/faculties
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "Test Faculty"
+}
+
+> {%
+    client.test("Create faculty", function () {
+        client.assert(response.status === 201, "Expected 201 Created");
+        client.assert(response.body.id !== undefined, "Faculty id is missing");
+    });
+
+    client.global.set("createdFacultyId", response.body.id);
+%}
+
+
+### Create department
+POST {{baseUrl}}/api/departments
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "Test Department",
+  "facultyId": {{createdFacultyId}}
+}
+
+> {%
+    client.test("Create department", function () {
+        client.assert(response.status === 201, "Expected 201 Created");
+        client.assert(response.body.id !== undefined, "Department id is missing");
+    });
+
+    client.global.set("createdDepartmentId", response.body.id);
+%}
+
+
+### Create major
+POST {{baseUrl}}/api/majors
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "Test Major",
+  "shortName": "TMJ",
+  "degree": "BACHELOR",
+  "departmentId": {{createdDepartmentId}}
+}
+
+> {%
+    client.test("Create major", function () {
+        client.assert(response.status === 201, "Expected 201 Created");
+        client.assert(response.body.id !== undefined, "Major id is missing");
+    });
+
+    client.global.set("createdMajorId", response.body.id);
+%}
+
+
+### Create study group
+POST {{baseUrl}}/api/groups
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "TEST-25",
+  "majorId": {{createdMajorId}},
+  "course": 1,
+  "studentCount": 25
+}
+
+> {%
+    client.test("Create study group", function () {
+        client.assert(response.status === 201, "Expected 201 Created");
+        client.assert(response.body.id !== undefined, "Study group id is missing");
+    });
+
+    client.global.set("createdStudyGroupId", response.body.id);
+%}
+
+
+### Create teacher
+POST {{baseUrl}}/api/teachers
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "fullName": "Test Teacher"
+}
+
+> {%
+    client.test("Create teacher", function () {
+        client.assert(response.status === 201, "Expected 201 Created");
+        client.assert(response.body.id !== undefined, "Teacher id is missing");
+    });
+
+    client.global.set("createdTeacherId", response.body.id);
+%}
+
+
+### Create subject
+POST {{baseUrl}}/api/subjects
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "Test Subject",
+  "code": "TST 101",
+  "totalHours": 6,
+  "hoursPerWeek": 6,
+  "majorId": {{createdMajorId}},
+  "teacherIds": [{{createdTeacherId}}],
+  "groupIds": [{{createdStudyGroupId}}]
+}
+
+> {%
+    client.test("Create subject", function () {
+        client.assert(response.status === 201, "Expected 201 Created");
+        client.assert(response.body.id !== undefined, "Subject id is missing");
+    });
+
+    client.global.set("createdSubjectId", response.body.id);
+%}
+
+
+### Create room
+POST {{baseUrl}}/api/rooms
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "TEST-ROOM",
+  "capacity": 30,
+  "type": "CLASSROOM"
+}
+
+> {%
+    client.test("Create room", function () {
+        client.assert(response.status === 201, "Expected 201 Created");
+        client.assert(response.body.id !== undefined, "Room id is missing");
+    });
+
+    client.global.set("createdRoomId", response.body.id);
+%}
+
+
+### Create timetable
+POST {{baseUrl}}/api/timetables
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "Test Timetable",
+  "academicYearStart": 2025,
+  "semester": "FALL",
+  "generationSettings": {
+    "avoidSaturday": true,
+    "avoidLateLessons": true,
+    "maxLessonsPerDay": 3
+  }
+}
+
+> {%
+    client.test("Create timetable", function () {
+        client.assert(response.status === 201, "Expected 201 Created");
+        client.assert(response.body.id !== undefined, "Timetable id is missing");
+    });
+
+    client.global.set("createdTimetableId", response.body.id);
+%}
+
+
+### Create assignment
+POST {{baseUrl}}/api/timetables/{{createdTimetableId}}/assignments
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "subjectId": {{createdSubjectId}},
+  "teacherId": {{createdTeacherId}},
+  "groupIds": [{{createdStudyGroupId}}],
+  "hoursPerWeek": 6,
+  "shift": "ANY",
+  "roomTypeRequired": "CLASSROOM",
+  "hoursSplitting": "2+2+2",
+  "specificRoomId": null
+}
+
+> {%
+    client.test("Create assignment", function () {
+        client.assert(response.status === 201, "Expected 201 Created");
+        client.assert(response.body.id !== undefined, "Assignment id is missing");
+    });
+
+    client.global.set("createdAssignmentId", response.body.id);
+%}
+
+
+### Create lesson
+POST {{baseUrl}}/api/timetables/{{createdTimetableId}}/lessons
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "assignmentId": {{createdAssignmentId}},
+  "dayOfWeek": "MONDAY",
+  "startTime": "08:00:00",
+  "durationHours": 2,
+  "roomId": {{createdRoomId}}
+}
+
+> {%
+    client.test("Create lesson", function () {
+        client.assert(response.status === 201, "Expected 201 Created");
+        client.assert(response.body.id !== undefined, "Lesson id is missing");
+    });
+
+    client.global.set("createdLessonId", response.body.id);
+%}
+
+
+### Create time slot
+POST {{baseUrl}}/api/time-slots
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "dayOfWeek": null,
+  "order": 2,
+  "startTime": "09:00",
+  "endTime": "09:40",
+  "description": "Test slot"
+}
+
+> {%
+    client.test("Create time slot", function () {
+        client.assert(response.status === 201, "Expected 201 Created");
+        client.assert(response.body.id !== undefined, "Time slot id is missing");
+    });
+
+    client.global.set("createdTimeSlotId", response.body.id);
+%}
+
+
+### Create lunch
+POST {{baseUrl}}/api/lunch
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "timetableId": {{createdTimetableId}},
+  "groupId": {{createdStudyGroupId}},
+  "dayOfWeek": "TUESDAY",
+  "startTime": "13:15:00",
+  "endTime": "13:55:00",
+  "isManual": true
+}
+
+> {%
+    client.test("Create lunch", function () {
+        client.assert(response.status === 200 || response.status === 201, "Expected 200 OK or 201 Created");
+        client.assert(response.body.id !== undefined, "Lunch id is missing");
+    });
+
+    client.global.set("createdLunchId", response.body.id);
+%}
+
+
+### Create user
+POST {{baseUrl}}/api/users
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "email": "test-user@university.kg",
+  "password": "TestPassword123",
+  "role": "ADMIN"
+}
+
+> {%
+    client.test("Create user", function () {
+        client.assert(response.status === 201, "Expected 201 Created");
+        client.assert(response.body.id !== undefined, "User id is missing");
+    });
+
+    client.global.set("createdUserId", response.body.id);
+%}

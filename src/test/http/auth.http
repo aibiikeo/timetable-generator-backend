@@ -1,0 +1,59 @@
+@baseUrl = http://localhost:8080
+@contentType = application/json
+
+
+### Login and save token
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "superadmin@example.com",
+  "password": "SuperSecret123"
+}
+
+> {%
+    client.test("Login successful", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+        client.assert(response.body.access_token !== undefined, "access_token is missing");
+        client.assert(response.body.refresh_token !== undefined, "refresh_token is missing");
+    });
+
+    client.global.set("accessToken", response.body.access_token);
+    client.global.set("refreshToken", response.body.refresh_token);
+
+    client.log("accessToken saved");
+    client.log("refreshToken saved");
+%}
+
+
+### Refresh access token
+# @name refresh
+POST {{baseUrl}}/auth/refresh
+Content-Type: {{contentType}}
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+> {%
+    client.test("Refresh successful", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+        client.assert(response.body.access_token !== undefined, "access_token is missing");
+    });
+
+    client.global.set("accessToken", response.body.access_token);
+
+    client.log("accessToken refreshed");
+%}
+
+
+### Check token with protected endpoint
+GET {{baseUrl}}/api/faculties
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Protected endpoint works", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}

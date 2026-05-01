@@ -1,0 +1,344 @@
+@baseUrl = http://localhost:8080
+@contentType = application/json
+
+### =========================================================
+### ERROR TESTS
+### Saved into ./errors/
+### Before running:
+### 1. Run auth.http
+### 2. Make sure {{accessToken}} exists
+### 3. Create folder src/test/http/errors
+### =========================================================
+
+
+### ERROR 001: invalid login
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "wrong@university.kg",
+  "password": "wrong-password"
+}
+
+> {%
+    client.test("ERROR 001 - invalid login", function () {
+        client.assert(response.status === 401, "Expected 401 Unauthorized");
+    });
+%}
+
+>>! ./errors/001-invalid-login.json
+
+
+### ERROR 002: get non-existing faculty
+GET {{baseUrl}}/api/faculties/999999
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("ERROR 002 - faculty not found", function () {
+        client.assert(response.status === 404, "Expected 404 Not Found");
+    });
+%}
+
+>>! ./errors/002-faculty-not-found.json
+
+
+### ERROR 003: duplicate faculty name
+POST {{baseUrl}}/api/faculties
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "Faculty of Engineering and Informatics"
+}
+
+> {%
+    client.test("ERROR 003 - duplicate faculty name", function () {
+        client.assert(
+            response.status === 400 || response.status === 409,
+            "Expected 400 Bad Request or 409 Conflict"
+        );
+    });
+%}
+
+>>! ./errors/003-duplicate-faculty.json
+
+
+### ERROR 004: create faculty with blank name
+POST {{baseUrl}}/api/faculties
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": ""
+}
+
+> {%
+    client.test("ERROR 004 - blank faculty name", function () {
+        client.assert(response.status === 400, "Expected 400 Bad Request");
+    });
+%}
+
+>>! ./errors/004-blank-faculty-name.json
+
+
+### ERROR 005: create faculty with missing name
+POST {{baseUrl}}/api/faculties
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+}
+
+> {%
+    client.test("ERROR 005 - missing faculty name", function () {
+        client.assert(response.status === 400, "Expected 400 Bad Request");
+    });
+%}
+
+>>! ./errors/005-missing-faculty-name.json
+
+
+### ERROR 006: create department with invalid facultyId
+POST {{baseUrl}}/api/departments
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "Broken Department",
+  "facultyId": 999999
+}
+
+> {%
+    client.test("ERROR 006 - invalid facultyId", function () {
+        client.assert(response.status === 404, "Expected 404 Not Found");
+    });
+%}
+
+>>! ./errors/006-invalid-faculty-id.json
+
+
+### ERROR 007: create major with invalid departmentId
+POST {{baseUrl}}/api/majors
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "Broken Major",
+  "shortName": "BRK",
+  "degree": "BACHELOR",
+  "departmentId": 999999
+}
+
+> {%
+    client.test("ERROR 007 - invalid departmentId", function () {
+        client.assert(response.status === 404, "Expected 404 Not Found");
+    });
+%}
+
+>>! ./errors/007-invalid-department-id.json
+
+
+### ERROR 008: create group with invalid majorId
+POST {{baseUrl}}/api/study-groups
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "BROKEN-GROUP",
+  "majorId": 999999,
+  "course": 1,
+  "studentCount": 25
+}
+
+> {%
+    client.test("ERROR 008 - invalid majorId", function () {
+        client.assert(response.status === 404, "Expected 404 Not Found");
+    });
+%}
+
+>>! ./errors/008-invalid-major-id.json
+
+
+### ERROR 009: create subject with invalid majorId
+POST {{baseUrl}}/api/subjects
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "Broken Subject",
+  "code": "BRK 101",
+  "totalHours": 6,
+  "hoursPerWeek": 6,
+  "majorId": 999999,
+  "teacherIds": [1],
+  "groupIds": [1]
+}
+
+> {%
+    client.test("ERROR 009 - invalid subject majorId", function () {
+        client.assert(response.status === 404, "Expected 404 Not Found");
+    });
+%}
+
+>>! ./errors/009-invalid-subject-major-id.json
+
+
+### ERROR 010: create assignment with invalid subjectId
+POST {{baseUrl}}/api/timetables/1/assignments
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "subjectId": 999999,
+  "teacherId": 1,
+  "groupIds": [1],
+  "hoursPerWeek": 6,
+  "shift": "ANY",
+  "roomTypeRequired": "CLASSROOM",
+  "hoursSplitting": "2+2+2",
+  "specificRoomId": null
+}
+
+> {%
+    client.test("ERROR 010 - invalid assignment subjectId", function () {
+        client.assert(response.status === 404, "Expected 404 Not Found");
+    });
+%}
+
+>>! ./errors/010-invalid-assignment-subject-id.json
+
+
+### ERROR 011: create assignment with invalid teacherId
+POST {{baseUrl}}/api/timetables/1/assignments
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "subjectId": 1,
+  "teacherId": 999999,
+  "groupIds": [1],
+  "hoursPerWeek": 6,
+  "shift": "ANY",
+  "roomTypeRequired": "CLASSROOM",
+  "hoursSplitting": "2+2+2",
+  "specificRoomId": null
+}
+
+> {%
+    client.test("ERROR 011 - invalid assignment teacherId", function () {
+        client.assert(response.status === 404, "Expected 404 Not Found");
+    });
+%}
+
+>>! ./errors/011-invalid-assignment-teacher-id.json
+
+
+### ERROR 012: generate non-existing timetable
+POST {{baseUrl}}/api/generation/timetables/999999/generate?mode=NEW
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("ERROR 012 - generate non-existing timetable", function () {
+        client.assert(response.status === 404, "Expected 404 Not Found");
+    });
+%}
+
+>>! ./errors/012-generate-non-existing-timetable.json
+
+
+### ERROR 013: request without token
+GET {{baseUrl}}/api/faculties
+
+> {%
+    client.test("ERROR 013 - request without token", function () {
+        client.assert(response.status === 401, "Expected 401 Unauthorized");
+    });
+%}
+
+>>! ./errors/013-without-token.json
+
+
+### ERROR 014: request with broken token
+GET {{baseUrl}}/api/faculties
+Authorization: Bearer broken-token
+
+> {%
+    client.test("ERROR 014 - request with broken token", function () {
+        client.assert(response.status === 401, "Expected 401 Unauthorized");
+    });
+%}
+
+>>! ./errors/014-broken-token.json
+
+
+### ERROR 015: create room with invalid room type
+POST {{baseUrl}}/api/rooms
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "Broken Room",
+  "capacity": 30,
+  "type": "SPACE_SHIP"
+}
+
+> {%
+    client.test("ERROR 015 - invalid room type", function () {
+        client.assert(response.status === 400, "Expected 400 Bad Request");
+    });
+%}
+
+>>! ./errors/015-invalid-room-type.json
+
+
+### ERROR 016: create room with negative capacity
+POST {{baseUrl}}/api/rooms
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "Broken Room Capacity",
+  "capacity": -10,
+  "type": "CLASSROOM"
+}
+
+> {%
+    client.test("ERROR 016 - negative room capacity", function () {
+        client.assert(response.status === 400, "Expected 400 Bad Request");
+    });
+%}
+
+>>! ./errors/016-negative-room-capacity.json
+
+
+### ERROR 017: create timetable with invalid semester
+POST {{baseUrl}}/api/timetables
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "Broken Timetable",
+  "academicYear": "2025-2026",
+  "semester": "WINTER"
+}
+
+> {%
+    client.test("ERROR 017 - invalid timetable semester", function () {
+        client.assert(response.status === 400, "Expected 400 Bad Request");
+    });
+%}
+
+>>! ./errors/017-invalid-semester.json
+
+
+### ERROR 018: invalid delete mode
+DELETE {{baseUrl}}/api/faculties/999999?mode=DESTROY_EVERYTHING
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("ERROR 018 - invalid delete mode", function () {
+        client.assert(response.status === 400, "Expected 400 Bad Request");
+    });
+%}
+
+>>! ./errors/018-invalid-delete-mode.json

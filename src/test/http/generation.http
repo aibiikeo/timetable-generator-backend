@@ -1,0 +1,93 @@
+@baseUrl = http://localhost:8080
+@contentType = application/json
+
+### =========================================================
+### GENERATION TESTS
+### Run after auth.http and 01-create.http
+### =========================================================
+
+
+### Get splitting options
+GET {{baseUrl}}/api/generation/splitting-options?hoursPerWeek=6
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Get splitting options", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Create assignment with generation options
+POST {{baseUrl}}/api/generation/timetables/{{createdTimetableId}}/assignments
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "subjectId": {{createdSubjectId}},
+  "teacherId": {{createdTeacherId}},
+  "groupIds": [{{createdStudyGroupId}}],
+  "hoursPerWeek": 6,
+  "shift": "ANY",
+  "roomTypeRequired": "CLASSROOM",
+  "hoursSplitting": "2+2+2",
+  "specificRoomId": null
+}
+
+> {%
+    client.test("Create assignment with generation options", function () {
+        client.assert(response.status === 201, "Expected 201 Created");
+        client.assert(response.body.id !== undefined, "Generated assignment id is missing");
+    });
+
+    client.global.set("createdGenerationAssignmentId", response.body.id);
+%}
+
+
+### Generate timetable NEW
+POST {{baseUrl}}/api/generation/timetables/{{createdTimetableId}}/generate?mode=NEW
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Generate timetable NEW", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Generate timetable APPEND
+POST {{baseUrl}}/api/generation/timetables/{{createdTimetableId}}/generate?mode=APPEND
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Generate timetable APPEND", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Retry failed assignments
+POST {{baseUrl}}/api/generation/timetables/{{createdTimetableId}}/retry-failed
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "{{createdAssignmentId}}": "2+2+2"
+}
+
+> {%
+    client.test("Retry failed assignments", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Manual place lesson
+POST {{baseUrl}}/api/generation/timetables/{{createdTimetableId}}/assignments/{{createdAssignmentId}}/manual-place?dayOfWeek=THURSDAY&startTime=10:00:00&durationHours=2&roomId={{createdRoomId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Manual place lesson", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}

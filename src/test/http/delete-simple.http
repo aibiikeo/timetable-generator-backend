@@ -1,0 +1,164 @@
+@baseUrl = http://localhost:8080
+
+### Delete lesson
+DELETE {{baseUrl}}/api/timetables/{{createdTimetableId}}/lessons/{{createdLessonId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Delete lesson", function () {
+        client.assert(
+            response.status === 204 || response.status === 404,
+            "Expected 204 No Content or 404 Not Found"
+        );
+    });
+%}
+
+### Delete assignment with SIMPLE mode
+DELETE {{baseUrl}}/api/timetables/{{createdTimetableId}}/assignments/{{createdAssignmentId}}?mode=SIMPLE
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Delete assignment with SIMPLE mode", function () {
+        client.assert(
+            response.status === 204 || response.status === 409,
+            "Expected 204 No Content or 409 Conflict"
+        );
+    });
+%}
+
+### Delete timetable with SIMPLE mode
+DELETE {{baseUrl}}/api/timetables/{{createdTimetableId}}?mode=SIMPLE
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Delete timetable with SIMPLE mode", function () {
+        client.assert(
+            response.status === 204 || response.status === 409,
+            "Expected 204 No Content or 409 Conflict"
+        );
+    });
+%}
+
+### Delete lunch
+DELETE {{baseUrl}}/api/lunch/{{createdLunchId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Delete lunch", function () {
+        client.assert(
+            response.status === 200 || response.status === 204,
+            "Expected 200 OK or 204 No Content"
+        );
+    });
+%}
+
+### Delete time slot
+DELETE {{baseUrl}}/api/time-slots/{{createdTimeSlotId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Delete time slot", function () {
+        client.assert(response.status === 204, "Expected 204 No Content");
+    });
+%}
+
+### Delete room with SIMPLE mode
+DELETE {{baseUrl}}/api/rooms/{{createdRoomId}}?mode=SIMPLE
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Delete room with SIMPLE mode", function () {
+        client.assert(
+            response.status === 204 || response.status === 409,
+            "Expected 204 No Content or 409 Conflict"
+        );
+    });
+%}
+
+### Delete subject with SIMPLE mode
+DELETE {{baseUrl}}/api/subjects/{{createdSubjectId}}?mode=SIMPLE
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Delete subject with SIMPLE mode", function () {
+        client.assert(
+            response.status === 204 || response.status === 409,
+            "Expected 204 No Content or 409 Conflict"
+        );
+    });
+%}
+
+### Delete teacher with SIMPLE mode
+DELETE {{baseUrl}}/api/teachers/{{createdTeacherId}}?mode=SIMPLE
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Delete teacher with SIMPLE mode", function () {
+        client.assert(
+            response.status === 204 || response.status === 409,
+            "Expected 204 No Content or 409 Conflict"
+        );
+    });
+%}
+
+### Delete study group with SIMPLE mode
+DELETE {{baseUrl}}/api/groups/{{createdStudyGroupId}}?mode=SIMPLE
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Delete study group with SIMPLE mode", function () {
+        client.assert(
+            response.status === 204 || response.status === 409,
+            "Expected 204 No Content or 409 Conflict"
+        );
+    });
+%}
+
+### Delete major with SIMPLE mode
+DELETE {{baseUrl}}/api/majors/{{createdMajorId}}?mode=SIMPLE
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Delete major with SIMPLE mode", function () {
+        client.assert(
+            response.status === 204 || response.status === 409,
+            "Expected 204 No Content or 409 Conflict"
+        );
+    });
+%}
+
+### Delete department with SIMPLE mode
+DELETE {{baseUrl}}/api/departments/{{createdDepartmentId}}?mode=SIMPLE
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Delete department with SIMPLE mode", function () {
+        client.assert(
+            response.status === 204 || response.status === 409,
+            "Expected 204 No Content or 409 Conflict"
+        );
+    });
+%}
+
+### Delete faculty with SIMPLE mode
+DELETE {{baseUrl}}/api/faculties/{{createdFacultyId}}?mode=SIMPLE
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Delete faculty with SIMPLE mode", function () {
+        client.assert(
+            response.status === 204 || response.status === 409,
+            "Expected 204 No Content or 409 Conflict"
+        );
+    });
+%}
+
+### Delete user
+DELETE {{baseUrl}}/api/users/{{createdUserId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("Delete user", function () {
+        client.assert(response.status === 204, "Expected 204 No Content");
+    });
+%}

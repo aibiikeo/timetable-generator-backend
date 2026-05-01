@@ -1,0 +1,259 @@
+@baseUrl = http://localhost:8080
+@contentType = application/json
+
+### =========================================================
+### UPDATE TESTS
+### Run after auth.http and 01-create.http
+### =========================================================
+
+
+### Update faculty
+PUT {{baseUrl}}/api/faculties/{{createdFacultyId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "Updated Test Faculty"
+}
+
+> {%
+    client.test("Update faculty", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Update department
+PUT {{baseUrl}}/api/departments/{{createdDepartmentId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "Updated Test Department",
+  "facultyId": {{createdFacultyId}}
+}
+
+> {%
+    client.test("Update department", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Update major
+PUT {{baseUrl}}/api/majors/{{createdMajorId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "Updated Test Major",
+  "shortName": "UTMJ",
+  "degree": "BACHELOR",
+  "departmentId": {{createdDepartmentId}}
+}
+
+> {%
+    client.test("Update major", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Update study group
+PUT {{baseUrl}}/api/groups/{{createdStudyGroupId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "TEST-25-UPDATED",
+  "majorId": {{createdMajorId}},
+  "course": 1,
+  "studentCount": 26
+}
+
+> {%
+    client.test("Update study group", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Update teacher
+PUT {{baseUrl}}/api/teachers/{{createdTeacherId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "fullName": "Updated Test Teacher"
+}
+
+> {%
+    client.test("Update teacher", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Update subject
+PUT {{baseUrl}}/api/subjects/{{createdSubjectId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "Updated Test Subject",
+  "code": "TST 102",
+  "totalHours": 4,
+  "hoursPerWeek": 4,
+  "majorId": {{createdMajorId}},
+  "teacherIds": [{{createdTeacherId}}],
+  "groupIds": [{{createdStudyGroupId}}]
+}
+
+> {%
+    client.test("Update subject", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Update room
+PUT {{baseUrl}}/api/rooms/{{createdRoomId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "TEST-ROOM-UPDATED",
+  "capacity": 35,
+  "type": "CLASSROOM"
+}
+
+> {%
+    client.test("Update room", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Update timetable
+PUT {{baseUrl}}/api/timetables/{{createdTimetableId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "Updated Test Timetable",
+  "academicYearStart": 2025,
+  "semester": "FALL",
+  "generationSettings": {
+    "avoidSaturday": true,
+    "avoidLateLessons": false,
+    "maxLessonsPerDay": 4
+  }
+}
+
+> {%
+    client.test("Update timetable", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Update assignment
+PUT {{baseUrl}}/api/timetables/{{createdTimetableId}}/assignments/{{createdAssignmentId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "subjectId": {{createdSubjectId}},
+  "teacherId": {{createdTeacherId}},
+  "groupIds": [{{createdStudyGroupId}}],
+  "hoursPerWeek": 4,
+  "shift": "ANY",
+  "roomTypeRequired": "CLASSROOM",
+  "hoursSplitting": "2+2",
+  "specificRoomId": null
+}
+
+> {%
+    client.test("Update assignment", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Update lesson
+PUT {{baseUrl}}/api/timetables/{{createdTimetableId}}/lessons/{{createdLessonId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "assignmentId": {{createdAssignmentId}},
+  "dayOfWeek": "TUESDAY",
+  "startTime": "09:00:00",
+  "durationHours": 2,
+  "roomId": {{createdRoomId}}
+}
+
+> {%
+    client.test("Update lesson", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Update time slot
+PUT {{baseUrl}}/api/time-slots/{{createdTimeSlotId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "dayOfWeek": null,
+  "order": 99,
+  "startTime": "20:10:00",
+  "endTime": "20:50:00",
+  "description": "Updated test slot"
+}
+
+> {%
+    client.test("Update time slot", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Update lunch
+PUT {{baseUrl}}/api/lunch/{{createdLunchId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "timetableId": {{createdTimetableId}},
+  "groupId": {{createdStudyGroupId}},
+  "dayOfWeek": "WEDNESDAY",
+  "startTime": "13:15:00",
+  "endTime": "13:55:00",
+  "isManual": true
+}
+
+> {%
+    client.test("Update lunch", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Update user
+PUT {{baseUrl}}/api/users/{{createdUserId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "email": "updated-test-user@university.kg",
+  "password": "UpdatedPassword123",
+  "role": "ADMIN"
+}
+
+> {%
+    client.test("Update user", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
