@@ -1,9 +1,11 @@
 package com.example.timetablegenerator.controllers;
 
+import com.example.timetablegenerator.domain.dto.request.DeleteMode;
 import com.example.timetablegenerator.domain.dto.request.DepartmentRequest;
 import com.example.timetablegenerator.domain.dto.response.DepartmentResponse;
 import com.example.timetablegenerator.exceptions.NotFoundException;
 import com.example.timetablegenerator.services.DepartmentService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
+@Tag(name = "Departments")
 @RequestMapping("/api/departments")
 @RequiredArgsConstructor
 @Slf4j
@@ -57,8 +60,11 @@ public class DepartmentController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteDepartment(@PathVariable Long id) {
-        log.info("Deleting department with ID: {}", id);
-        departmentService.deleteDepartment(id);
+    public void deleteDepartment(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "SIMPLE") DeleteMode mode
+    ) {
+        log.info("Deleting department with ID: {} using mode: {}", id, mode);
+        departmentService.deleteDepartment(id, mode);
     }
 }

@@ -1,5 +1,6 @@
 package com.example.timetablegenerator.services;
 
+import com.example.timetablegenerator.domain.dto.request.DeleteMode;
 import com.example.timetablegenerator.domain.dto.request.StudyGroupRequest;
 import com.example.timetablegenerator.domain.dto.response.StudyGroupResponse;
 
@@ -22,5 +23,5 @@ public interface StudyGroupService {
 
     StudyGroupResponse updateGroup(Long groupId, StudyGroupRequest request);
 
-    void deleteGroup(Long groupId);
+    void deleteGroup(Long groupId, DeleteMode mode);
 }

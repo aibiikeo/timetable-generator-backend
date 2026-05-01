@@ -1,5 +1,6 @@
 package com.example.timetablegenerator.services;
 
+import com.example.timetablegenerator.domain.dto.request.DeleteMode;
 import com.example.timetablegenerator.domain.dto.request.MajorRequest;
 import com.example.timetablegenerator.domain.dto.response.MajorResponse;
 
@@ -20,5 +21,5 @@ public interface MajorService {
 
     MajorResponse updateMajor(Long majorId, MajorRequest request);
 
-    void deleteMajor(Long majorId);
+    void deleteMajor(Long majorId, DeleteMode mode);
 }

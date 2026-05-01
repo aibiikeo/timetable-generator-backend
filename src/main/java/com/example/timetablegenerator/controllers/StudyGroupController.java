@@ -1,9 +1,11 @@
 package com.example.timetablegenerator.controllers;
 
+import com.example.timetablegenerator.domain.dto.request.DeleteMode;
 import com.example.timetablegenerator.domain.dto.request.StudyGroupRequest;
 import com.example.timetablegenerator.domain.dto.response.StudyGroupResponse;
 import com.example.timetablegenerator.exceptions.NotFoundException;
 import com.example.timetablegenerator.services.StudyGroupService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
+@Tag(name = "Study Groups")
 @RequestMapping("/api/groups")
 @RequiredArgsConstructor
 @Slf4j
@@ -71,8 +74,11 @@ public class StudyGroupController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteGroup(@PathVariable Long id) {
-        log.info("Deleting study group with ID: {}", id);
-        studyGroupService.deleteGroup(id);
+    public void deleteGroup(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "SIMPLE") DeleteMode mode
+    ) {
+        log.info("Deleting study group with ID: {} using mode: {}", id, mode);
+        studyGroupService.deleteGroup(id, mode);
     }
 }

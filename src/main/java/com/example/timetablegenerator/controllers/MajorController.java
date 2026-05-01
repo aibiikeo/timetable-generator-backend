@@ -1,9 +1,11 @@
 package com.example.timetablegenerator.controllers;
 
+import com.example.timetablegenerator.domain.dto.request.DeleteMode;
 import com.example.timetablegenerator.domain.dto.request.MajorRequest;
 import com.example.timetablegenerator.domain.dto.response.MajorResponse;
 import com.example.timetablegenerator.exceptions.NotFoundException;
 import com.example.timetablegenerator.services.MajorService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
+@Tag(name = "Majors")
 @RequestMapping("/api/majors")
 @RequiredArgsConstructor
 @Slf4j
@@ -63,8 +66,11 @@ public class MajorController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteMajor(@PathVariable Long id) {
-        log.info("Deleting major with ID: {}", id);
-        majorService.deleteMajor(id);
+    public void deleteMajor(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "SIMPLE") DeleteMode mode
+    ) {
+        log.info("Deleting major with ID: {} using mode: {}", id, mode);
+        majorService.deleteMajor(id, mode);
     }
 }

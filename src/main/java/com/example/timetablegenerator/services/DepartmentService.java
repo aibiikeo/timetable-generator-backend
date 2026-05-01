@@ -1,5 +1,6 @@
 package com.example.timetablegenerator.services;
 
+import com.example.timetablegenerator.domain.dto.request.DeleteMode;
 import com.example.timetablegenerator.domain.dto.request.DepartmentRequest;
 import com.example.timetablegenerator.domain.dto.response.DepartmentResponse;
 
@@ -18,5 +19,5 @@ public interface DepartmentService {
 
     DepartmentResponse updateDepartment(Long departmentId, DepartmentRequest request);
 
-    void deleteDepartment(Long departmentId);
+    void deleteDepartment(Long departmentId, DeleteMode mode);
 }

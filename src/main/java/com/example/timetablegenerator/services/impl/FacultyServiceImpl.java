@@ -9,30 +9,32 @@ import com.example.timetablegenerator.exceptions.NotFoundException;
 import com.example.timetablegenerator.mappers.FacultyMapper;
 import com.example.timetablegenerator.repositories.DepartmentRepository;
 import com.example.timetablegenerator.repositories.FacultyRepository;
+import com.example.timetablegenerator.services.DepartmentService;
 import com.example.timetablegenerator.services.FacultyService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.validation.annotation.Validated;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-@Validated
-@Transactional(readOnly = true)
 @Slf4j
+@Transactional(readOnly = true)
 public class FacultyServiceImpl implements FacultyService {
 
     private final FacultyRepository facultyRepository;
     private final DepartmentRepository departmentRepository;
     private final FacultyMapper facultyMapper;
+    private final DepartmentService departmentService;
 
     @Override
     public List<FacultyResponse> getAllFaculties() {
-        return facultyRepository.findAll().stream()
+        return facultyRepository.findAll()
+                .stream()
                 .map(facultyMapper::toResponse)
                 .toList();
     }
@@ -43,51 +45,87 @@ public class FacultyServiceImpl implements FacultyService {
                 .map(facultyMapper::toResponse);
     }
 
-    @Transactional
     @Override
+    @Transactional
     public FacultyResponse createFaculty(FacultyRequest request) {
-        Faculty faculty = facultyMapper.toEntity(request);
+        String normalizedName = normalize(request.name());
+
+        if (facultyRepository.existsByNameIgnoreCase(normalizedName)) {
+            throw new IllegalStateException("Faculty with name '" + normalizedName + "' already exists");
+        }
+
+        Faculty faculty = Faculty.builder()
+                .name(normalizedName)
+                .build();
+
         Faculty saved = facultyRepository.save(faculty);
-        log.info("Created faculty '{}'", saved.getName());
+        log.info("Created faculty with id={}", saved.getId());
+
         return facultyMapper.toResponse(saved);
     }
 
-    @Transactional
     @Override
+    @Transactional
     public FacultyResponse updateFaculty(Long facultyId, FacultyRequest request) {
         Faculty faculty = facultyRepository.findById(facultyId)
                 .orElseThrow(() -> new NotFoundException("Faculty not found with id: " + facultyId));
 
-        facultyMapper.updateEntityFromRequest(request, faculty);
+        String normalizedName = normalize(request.name());
+
+        facultyRepository.findByNameIgnoreCase(normalizedName)
+                .filter(existing -> !existing.getId().equals(facultyId))
+                .ifPresent(existing -> {
+                    throw new IllegalStateException("Faculty with name '" + normalizedName + "' already exists");
+                });
+
+        faculty.setName(normalizedName);
 
         Faculty updated = facultyRepository.save(faculty);
-        log.info("Updated faculty {} -> '{}'", facultyId, updated.getName());
+        log.info("Updated faculty with id={}", updated.getId());
+
         return facultyMapper.toResponse(updated);
     }
 
-    @Transactional
     @Override
+    @Transactional
     public void deleteFaculty(Long facultyId, DeleteMode mode) {
         Faculty faculty = facultyRepository.findById(facultyId)
                 .orElseThrow(() -> new NotFoundException("Faculty not found with id: " + facultyId));
 
-        List<Department> departments = departmentRepository.findByFacultyId(facultyId);
+        List<Department> departments = new ArrayList<>(departmentRepository.findByFacultyId(facultyId));
 
-        if (mode == DeleteMode.SIMPLE && !departments.isEmpty()) {
-            throw new IllegalStateException(
-                    "Cannot delete faculty with id " + facultyId +
-                            " because it has " + departments.size() + " associated departments"
-            );
-        }
+        switch (mode) {
+            case SIMPLE -> {
+                if (!departments.isEmpty()) {
+                    throw new IllegalStateException(
+                            "Cannot delete faculty with id " + facultyId +
+                                    " because it has " + departments.size() + " associated departments"
+                    );
+                }
+            }
 
-        if (mode == DeleteMode.DETACH || mode == DeleteMode.WITH) {
-            throw new IllegalStateException(
-                    "Faculty deletion with mode " + mode +
-                            " is not supported until cascading delete for departments/majors/groups is explicitly implemented"
-            );
+            case DETACH -> {
+                for (Department department : departments) {
+                    department.setFaculty(null);
+                }
+                departmentRepository.saveAll(departments);
+            }
+
+            case WITH -> {
+                for (Department department : departments) {
+                    departmentService.deleteDepartment(department.getId(), DeleteMode.WITH);
+                }
+            }
         }
 
         facultyRepository.delete(faculty);
-        log.info("Deleted faculty {} (simple mode)", facultyId);
+        log.info("Deleted faculty with id={} using mode={}", facultyId, mode);
+    }
+
+    private String normalize(String value) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("Faculty name must not be blank");
+        }
+        return value.trim();
     }
 }

@@ -24,8 +24,8 @@ public class StudyGroup {
     @Column(nullable = false, unique = true)
     private String name;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "major_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "major_id")
     private Major major;
 
     @Column(nullable = false)
