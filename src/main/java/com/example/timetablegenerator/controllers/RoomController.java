@@ -1,10 +1,12 @@
 package com.example.timetablegenerator.controllers;
 
+import com.example.timetablegenerator.domain.dto.request.DeleteMode;
 import com.example.timetablegenerator.domain.dto.request.RoomRequest;
 import com.example.timetablegenerator.domain.dto.response.RoomResponse;
 import com.example.timetablegenerator.domain.entities.RoomType;
 import com.example.timetablegenerator.exceptions.NotFoundException;
 import com.example.timetablegenerator.services.RoomService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
+@Tag(name = "Rooms")
 @RequestMapping("/api/rooms")
 @RequiredArgsConstructor
 @Slf4j
@@ -55,8 +58,11 @@ public class RoomController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteRoom(@PathVariable Long id) {
-        log.info("Deleting room {}", id);
-        roomService.deleteRoom(id);
+    public void deleteRoom(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "SIMPLE") DeleteMode mode
+    ) {
+        log.info("Deleting room with ID: {} using mode: {}", id, mode);
+        roomService.deleteRoom(id, mode);
     }
 }

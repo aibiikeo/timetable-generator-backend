@@ -1,5 +1,6 @@
 package com.example.timetablegenerator.services;
 
+import com.example.timetablegenerator.domain.dto.request.DeleteMode;
 import com.example.timetablegenerator.domain.dto.request.RoomRequest;
 import com.example.timetablegenerator.domain.dto.response.RoomResponse;
 import com.example.timetablegenerator.domain.entities.RoomType;
@@ -19,5 +20,5 @@ public interface RoomService {
 
     RoomResponse updateRoom(Long roomId, RoomRequest request);
 
-    void deleteRoom(Long roomId);
+    void deleteRoom(Long roomId, DeleteMode mode);
 }

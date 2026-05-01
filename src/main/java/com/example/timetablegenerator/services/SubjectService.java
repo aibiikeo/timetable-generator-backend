@@ -1,5 +1,6 @@
 package com.example.timetablegenerator.services;
 
+import com.example.timetablegenerator.domain.dto.request.DeleteMode;
 import com.example.timetablegenerator.domain.dto.request.SubjectRequest;
 import com.example.timetablegenerator.domain.dto.response.SubjectResponse;
 import com.example.timetablegenerator.domain.dto.response.TeacherResponse;
@@ -25,7 +26,7 @@ public interface SubjectService {
 
     SubjectResponse updateSubject(Long subjectId, SubjectRequest request);
 
-    void deleteSubject(Long subjectId);
+    void deleteSubject(Long subjectId, DeleteMode mode);
 
     List<TeacherResponse> getTeachersBySubject(Long subjectId);
 }

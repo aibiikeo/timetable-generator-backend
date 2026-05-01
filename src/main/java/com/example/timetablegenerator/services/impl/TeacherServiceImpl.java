@@ -5,12 +5,15 @@ import com.example.timetablegenerator.domain.dto.request.TeacherRequest;
 import com.example.timetablegenerator.domain.dto.response.AssignmentResponse;
 import com.example.timetablegenerator.domain.dto.response.TeacherResponse;
 import com.example.timetablegenerator.domain.entities.Assignment;
+import com.example.timetablegenerator.domain.entities.Lesson;
+import com.example.timetablegenerator.domain.entities.Subject;
 import com.example.timetablegenerator.domain.entities.Teacher;
 import com.example.timetablegenerator.exceptions.NotFoundException;
 import com.example.timetablegenerator.mappers.AssignmentMapper;
 import com.example.timetablegenerator.mappers.TeacherMapper;
 import com.example.timetablegenerator.repositories.AssignmentRepository;
 import com.example.timetablegenerator.repositories.LessonRepository;
+import com.example.timetablegenerator.repositories.SubjectRepository;
 import com.example.timetablegenerator.repositories.TeacherRepository;
 import com.example.timetablegenerator.services.TeacherService;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,6 +38,7 @@ public class TeacherServiceImpl implements TeacherService {
     private final AssignmentRepository assignmentRepository;
     private final LessonRepository lessonRepository;
     private final AssignmentMapper assignmentMapper;
+    private final SubjectRepository subjectRepository;
 
     @Override
     public List<TeacherResponse> getAllTeachers() {
@@ -79,50 +84,60 @@ public class TeacherServiceImpl implements TeacherService {
                 .toList();
     }
 
-    @Transactional
     @Override
+    @Transactional
     public void deleteTeacher(Long teacherId, DeleteMode mode) {
         Teacher teacher = teacherRepository.findById(teacherId)
                 .orElseThrow(() -> new NotFoundException("Teacher not found with id: " + teacherId));
 
-        List<Assignment> assignments = assignmentRepository.findByTeacherId(teacherId);
+        List<Assignment> assignments = new ArrayList<>(assignmentRepository.findByTeacherId(teacherId));
 
-        if (mode == DeleteMode.SIMPLE && !assignments.isEmpty()) {
-            log.info("Auto-switching SIMPLE to DETACH for teacher {} because assignments exist", teacherId);
-            mode = DeleteMode.DETACH;
-        }
+        List<Lesson> lessons = lessonRepository.findAll()
+                .stream()
+                .filter(lesson -> lesson.getTeacher() != null && lesson.getTeacher().getId().equals(teacherId))
+                .toList();
+
+        List<Subject> subjects = new ArrayList<>(teacher.getSubjects());
 
         switch (mode) {
             case SIMPLE -> {
-                if (!assignments.isEmpty()) {
+                if (!assignments.isEmpty() || !lessons.isEmpty() || !subjects.isEmpty()) {
                     throw new IllegalStateException(
-                            "Cannot delete teacher with id " + teacherId + " because it has " +
-                                    assignments.size() + " associated assignments. Use DETACH or WITH mode."
+                            "Cannot delete teacher with id " + teacherId +
+                                    " because it is used in assignments, lessons or subjects"
                     );
                 }
-                teacherRepository.delete(teacher);
             }
 
             case DETACH -> {
                 for (Assignment assignment : assignments) {
                     assignment.setTeacher(null);
-                    assignmentRepository.save(assignment);
                 }
-                lessonRepository.detachTeacher(teacherId);
-                teacherRepository.delete(teacher);
+                assignmentRepository.saveAll(assignments);
+
+                for (Lesson lesson : lessons) {
+                    lesson.setTeacher(null);
+                }
+                lessonRepository.saveAll(lessons);
+
+                for (Subject subject : subjects) {
+                    subject.getTeachers().removeIf(t -> t.getId().equals(teacherId));
+                }
+                subjectRepository.saveAll(subjects);
             }
 
             case WITH -> {
-                lessonRepository.detachTeacher(teacherId);
+                lessonRepository.deleteAll(lessons);
+                assignmentRepository.deleteAll(assignments);
 
-                if (!assignments.isEmpty()) {
-                    List<Long> assignmentIds = assignments.stream().map(Assignment::getId).toList();
-                    lessonRepository.detachAssignments(assignmentIds);
-                    assignmentRepository.deleteAll(assignments);
+                for (Subject subject : subjects) {
+                    subject.getTeachers().removeIf(t -> t.getId().equals(teacherId));
                 }
-
-                teacherRepository.delete(teacher);
+                subjectRepository.saveAll(subjects);
             }
         }
+
+        teacherRepository.delete(teacher);
+        log.info("Deleted teacher with id={} using mode={}", teacherId, mode);
     }
 }

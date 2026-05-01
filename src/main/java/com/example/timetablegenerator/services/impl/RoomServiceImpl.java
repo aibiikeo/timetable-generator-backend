@@ -1,24 +1,27 @@
 package com.example.timetablegenerator.services.impl;
 
+import com.example.timetablegenerator.domain.dto.request.DeleteMode;
 import com.example.timetablegenerator.domain.dto.request.RoomRequest;
 import com.example.timetablegenerator.domain.dto.response.RoomResponse;
+import com.example.timetablegenerator.domain.entities.Lesson;
 import com.example.timetablegenerator.domain.entities.Room;
+import com.example.timetablegenerator.domain.entities.RoomType;
 import com.example.timetablegenerator.exceptions.NotFoundException;
 import com.example.timetablegenerator.mappers.RoomMapper;
 import com.example.timetablegenerator.repositories.LessonRepository;
 import com.example.timetablegenerator.repositories.RoomRepository;
 import com.example.timetablegenerator.services.RoomService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.validation.annotation.Validated;
 
 import java.util.List;
 import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-@Validated
+@Slf4j
 @Transactional(readOnly = true)
 public class RoomServiceImpl implements RoomService {
 
@@ -28,14 +31,16 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     public List<RoomResponse> getAllRooms() {
-        return roomRepository.findAll().stream()
+        return roomRepository.findAll()
+                .stream()
                 .map(roomMapper::toResponse)
                 .toList();
     }
 
     @Override
-    public List<RoomResponse> getRoomsByType(com.example.timetablegenerator.domain.entities.RoomType type) {
-        return roomRepository.findByType(type).stream()
+    public List<RoomResponse> getRoomsByType(RoomType type) {
+        return roomRepository.findByType(type)
+                .stream()
                 .map(roomMapper::toResponse)
                 .toList();
     }
@@ -46,41 +51,98 @@ public class RoomServiceImpl implements RoomService {
                 .map(roomMapper::toResponse);
     }
 
-    @Transactional
     @Override
+    @Transactional
     public RoomResponse createRoom(RoomRequest request) {
-        Room room = roomMapper.toEntity(request);
-        if (room.getCapacity() == null) {
-            room.setCapacity(30);
+        String normalizedName = normalize(request.name());
+
+        boolean exists = roomRepository.findAll().stream()
+                .anyMatch(room -> room.getName() != null && room.getName().equalsIgnoreCase(normalizedName));
+
+        if (exists) {
+            throw new IllegalStateException("Room with name '" + normalizedName + "' already exists");
         }
+
+        Room room = Room.builder()
+                .name(normalizedName)
+                .capacity(request.capacity())
+                .type(request.type())
+                .build();
+
         Room saved = roomRepository.save(room);
+        log.info("Created room with id={}", saved.getId());
+
         return roomMapper.toResponse(saved);
     }
 
-    @Transactional
     @Override
+    @Transactional
     public RoomResponse updateRoom(Long roomId, RoomRequest request) {
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new NotFoundException("Room not found with id: " + roomId));
 
-        roomMapper.updateEntityFromRequest(request, room);
-        if (room.getCapacity() == null) {
-            room.setCapacity(30);
+        String normalizedName = normalize(request.name());
+
+        boolean exists = roomRepository.findAll().stream()
+                .anyMatch(existing ->
+                        existing.getName() != null &&
+                                existing.getName().equalsIgnoreCase(normalizedName) &&
+                                !existing.getId().equals(roomId)
+                );
+
+        if (exists) {
+            throw new IllegalStateException("Room with name '" + normalizedName + "' already exists");
         }
 
+        room.setName(normalizedName);
+        room.setCapacity(request.capacity());
+        room.setType(request.type());
+
         Room updated = roomRepository.save(room);
+        log.info("Updated room with id={}", updated.getId());
+
         return roomMapper.toResponse(updated);
     }
 
-    @Transactional
     @Override
-    public void deleteRoom(Long roomId) {
+    @Transactional
+    public void deleteRoom(Long roomId, DeleteMode mode) {
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new NotFoundException("Room not found with id: " + roomId));
 
-        if (!lessonRepository.findByRoom_IdAndTimetableId(roomId, roomId).isEmpty()) {
+        List<Lesson> lessons = lessonRepository.findAll()
+                .stream()
+                .filter(lesson -> lesson.getRoom() != null && lesson.getRoom().getId().equals(roomId))
+                .toList();
+
+        switch (mode) {
+            case SIMPLE -> {
+                if (!lessons.isEmpty()) {
+                    throw new IllegalStateException(
+                            "Cannot delete room with id " + roomId +
+                                    " because it is used in " + lessons.size() + " lessons"
+                    );
+                }
+            }
+
+            case DETACH -> {
+                for (Lesson lesson : lessons) {
+                    lesson.setRoom(null);
+                }
+                lessonRepository.saveAll(lessons);
+            }
+
+            case WITH -> lessonRepository.deleteAll(lessons);
         }
 
         roomRepository.delete(room);
+        log.info("Deleted room with id={} using mode={}", roomId, mode);
+    }
+
+    private String normalize(String value) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("Room name must not be blank");
+        }
+        return value.trim();
     }
 }

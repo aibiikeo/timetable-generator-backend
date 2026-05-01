@@ -1,10 +1,12 @@
 package com.example.timetablegenerator.controllers;
 
+import com.example.timetablegenerator.domain.dto.request.DeleteMode;
 import com.example.timetablegenerator.domain.dto.request.SubjectRequest;
 import com.example.timetablegenerator.domain.dto.response.SubjectResponse;
 import com.example.timetablegenerator.domain.dto.response.TeacherResponse;
 import com.example.timetablegenerator.exceptions.NotFoundException;
 import com.example.timetablegenerator.services.SubjectService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
+@Tag(name = "Subjects")
 @RequestMapping("/api/subjects")
 @RequiredArgsConstructor
 @Slf4j
@@ -79,9 +82,12 @@ public class SubjectController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteSubject(@PathVariable Long id) {
-        log.info("Deleting subject with ID: {}", id);
-        subjectService.deleteSubject(id);
+    public void deleteSubject(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "SIMPLE") DeleteMode mode
+    ) {
+        log.info("Deleting subject with ID: {} using mode: {}", id, mode);
+        subjectService.deleteSubject(id, mode);
     }
 
     @GetMapping("/{subjectId}/teachers")

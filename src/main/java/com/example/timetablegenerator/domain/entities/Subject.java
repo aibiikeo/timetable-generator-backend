@@ -33,8 +33,8 @@ public class Subject {
     @Column(name = "hours_per_week")
     private Integer hoursPerWeek;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "major_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "major_id")
     private Major major;
 
     @ManyToMany

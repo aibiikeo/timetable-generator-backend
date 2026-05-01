@@ -1,5 +1,6 @@
 package com.example.timetablegenerator.services.impl;
 
+import com.example.timetablegenerator.domain.dto.request.DeleteMode;
 import com.example.timetablegenerator.domain.dto.request.SubjectRequest;
 import com.example.timetablegenerator.domain.dto.response.SubjectResponse;
 import com.example.timetablegenerator.domain.dto.response.TeacherResponse;
@@ -10,12 +11,7 @@ import com.example.timetablegenerator.domain.entities.Subject;
 import com.example.timetablegenerator.exceptions.NotFoundException;
 import com.example.timetablegenerator.mappers.SubjectMapper;
 import com.example.timetablegenerator.mappers.TeacherMapper;
-import com.example.timetablegenerator.repositories.AssignmentRepository;
-import com.example.timetablegenerator.repositories.DepartmentRepository;
-import com.example.timetablegenerator.repositories.FacultyRepository;
-import com.example.timetablegenerator.repositories.LessonRepository;
-import com.example.timetablegenerator.repositories.MajorRepository;
-import com.example.timetablegenerator.repositories.SubjectRepository;
+import com.example.timetablegenerator.repositories.*;
 import com.example.timetablegenerator.services.SubjectService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -137,28 +134,49 @@ public class SubjectServiceImpl implements SubjectService {
         return subjectMapper.toResponse(updated);
     }
 
-    @Transactional
     @Override
-    public void deleteSubject(Long subjectId) {
+    @Transactional
+    public void deleteSubject(Long subjectId, DeleteMode mode) {
         Subject subject = subjectRepository.findById(subjectId)
                 .orElseThrow(() -> new NotFoundException("Subject not found with id: " + subjectId));
 
-        List<Assignment> assignments = assignmentRepository.findBySubjectId(subjectId);
-        List<Lesson> lessons = lessonRepository.findBySubjectId(subjectId);
+        List<Assignment> assignments = new ArrayList<>(assignmentRepository.findBySubjectId(subjectId));
+        List<Lesson> lessons = new ArrayList<>(lessonRepository.findBySubjectId(subjectId));
 
-        if (!assignments.isEmpty() || !lessons.isEmpty()) {
-            throw new IllegalStateException(
-                    "Cannot delete subject with id " + subjectId +
-                            " because it is used in " + assignments.size() + " assignments and " +
-                            lessons.size() + " lessons"
-            );
+        switch (mode) {
+            case SIMPLE -> {
+                if (!assignments.isEmpty() || !lessons.isEmpty()) {
+                    throw new IllegalStateException(
+                            "Cannot delete subject with id " + subjectId +
+                                    " because it is used in " + assignments.size() +
+                                    " assignments and " + lessons.size() + " lessons"
+                    );
+                }
+            }
+
+            case DETACH -> {
+                for (Assignment assignment : assignments) {
+                    assignment.setSubject(null);
+                }
+                assignmentRepository.saveAll(assignments);
+
+                for (Lesson lesson : lessons) {
+                    lesson.setSubject(null);
+                }
+                lessonRepository.saveAll(lessons);
+            }
+
+            case WITH -> {
+                lessonRepository.deleteAll(lessons);
+                assignmentRepository.deleteAll(assignments);
+            }
         }
 
         subject.getTeachers().clear();
         subject.getGroups().clear();
 
         subjectRepository.delete(subject);
-        log.info("Deleted subject {}", subjectId);
+        log.info("Deleted subject with id={} using mode={}", subjectId, mode);
     }
 
     @Override
