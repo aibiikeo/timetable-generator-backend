@@ -1,6 +1,7 @@
 package com.example.timetablegenerator.services.impl;
 
 import com.example.timetablegenerator.domain.dto.request.AssignmentRequest;
+import com.example.timetablegenerator.domain.dto.request.DeleteMode;
 import com.example.timetablegenerator.domain.dto.response.AssignmentResponse;
 import com.example.timetablegenerator.domain.entities.*;
 import com.example.timetablegenerator.exceptions.NotFoundException;
@@ -13,10 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -26,6 +24,7 @@ import java.util.Set;
 public class AssignmentServiceImpl implements AssignmentService {
 
     private final AssignmentRepository assignmentRepository;
+    private final LessonRepository lessonRepository;
     private final TimetableRepository timetableRepository;
     private final SubjectRepository subjectRepository;
     private final TeacherRepository teacherRepository;
@@ -173,26 +172,45 @@ public class AssignmentServiceImpl implements AssignmentService {
         return assignmentMapper.toResponse(updated);
     }
 
-    @Transactional
     @Override
-    public void deleteAssignment(Long timetableId, Long assignmentId) {
-        log.info("Deleting assignment id={} from timetableId={}", assignmentId, timetableId);
-
+    @Transactional
+    public void deleteAssignment(Long timetableId, Long assignmentId, DeleteMode mode) {
         Assignment assignment = assignmentRepository.findByIdAndTimetableId(assignmentId, timetableId)
-                .orElseThrow(() -> {
-                    log.warn(
-                            "Assignment not found while deleting. assignmentId={}, timetableId={}",
-                            assignmentId,
-                            timetableId
+                .orElseThrow(() -> new NotFoundException(
+                        "Assignment not found with id " + assignmentId + " in timetable " + timetableId
+                ));
+
+        List<Lesson> lessons = new ArrayList<>(lessonRepository.findByAssignmentId(assignmentId));
+
+        switch (mode) {
+            case SIMPLE -> {
+                if (!lessons.isEmpty()) {
+                    throw new IllegalStateException(
+                            "Cannot delete assignment with id " + assignmentId +
+                                    " because it is used in " + lessons.size() + " lessons"
                     );
-                    return new NotFoundException(
-                            "Assignment not found with id: " + assignmentId + " in timetable: " + timetableId
-                    );
-                });
+                }
+            }
+
+            case DETACH -> {
+                for (Lesson lesson : lessons) {
+                    lesson.setAssignment(null);
+                }
+
+                lessonRepository.saveAll(lessons);
+            }
+
+            case WITH -> lessonRepository.deleteAll(lessons);
+        }
 
         assignmentRepository.delete(assignment);
 
-        log.info("Assignment deleted successfully. assignmentId={}, timetableId={}", assignmentId, timetableId);
+        log.info(
+                "Deleted assignment with id={} from timetable={} using mode={}",
+                assignmentId,
+                timetableId,
+                mode
+        );
     }
 
     private Set<StudyGroup> loadGroups(List<Long> groupIds) {

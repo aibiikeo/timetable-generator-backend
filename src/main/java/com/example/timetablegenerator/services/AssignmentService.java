@@ -1,6 +1,7 @@
 package com.example.timetablegenerator.services;
 
 import com.example.timetablegenerator.domain.dto.request.AssignmentRequest;
+import com.example.timetablegenerator.domain.dto.request.DeleteMode;
 import com.example.timetablegenerator.domain.dto.response.AssignmentResponse;
 
 import java.util.List;
@@ -16,5 +17,5 @@ public interface AssignmentService {
 
     AssignmentResponse updateAssignment(Long timetableId, Long assignmentId, AssignmentRequest request);
 
-    void deleteAssignment(Long timetableId, Long assignmentId);
+    void deleteAssignment(Long timetableId, Long assignmentId, DeleteMode mode);
 }

@@ -1,9 +1,11 @@
 package com.example.timetablegenerator.controllers;
 
 import com.example.timetablegenerator.domain.dto.request.AssignmentRequest;
+import com.example.timetablegenerator.domain.dto.request.DeleteMode;
 import com.example.timetablegenerator.domain.dto.response.AssignmentResponse;
 import com.example.timetablegenerator.exceptions.NotFoundException;
 import com.example.timetablegenerator.services.AssignmentService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
+@Tag(name = "Assignments")
 @RequestMapping("/api/timetables/{timetableId}/assignments")
 @RequiredArgsConstructor
 @Slf4j
@@ -62,9 +65,10 @@ public class AssignmentController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteAssignment(
             @PathVariable Long timetableId,
-            @PathVariable Long assignmentId) {
+            @PathVariable Long assignmentId,
+            @RequestParam(defaultValue = "SIMPLE") DeleteMode mode) {
 
-        log.info("Deleting assignment ID: {} from timetable {}", assignmentId, timetableId);
-        assignmentService.deleteAssignment(timetableId, assignmentId);
+        log.info("Deleting assignment ID: {} from timetable {} using mode {}", assignmentId, timetableId, mode);
+        assignmentService.deleteAssignment(timetableId, assignmentId, mode);
     }
 }
