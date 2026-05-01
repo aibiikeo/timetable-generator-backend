@@ -14,10 +14,12 @@ import com.example.timetablegenerator.repositories.RoomRepository;
 import com.example.timetablegenerator.repositories.TimetableRepository;
 import com.example.timetablegenerator.services.LessonService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,6 +27,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Validated
 @Transactional(readOnly = true)
+@Slf4j
 public class LessonServiceImpl implements LessonService {
 
     private final LessonRepository lessonRepository;
@@ -92,7 +95,7 @@ public class LessonServiceImpl implements LessonService {
         lesson.setAssignment(assignment);
         lesson.setSubject(assignment.getSubject());
         lesson.setTeacher(assignment.getTeacher());
-        lesson.setGroups(assignment.getGroups());
+        lesson.setGroups(new HashSet<>(assignment.getGroups()));
         lesson.setRoom(room);
 
         Lesson saved = lessonRepository.save(lesson);
@@ -116,21 +119,26 @@ public class LessonServiceImpl implements LessonService {
         lesson.setAssignment(assignment);
         lesson.setSubject(assignment.getSubject());
         lesson.setTeacher(assignment.getTeacher());
-        lesson.setGroups(assignment.getGroups());
+        lesson.setGroups(new HashSet<>(assignment.getGroups()));
         lesson.setRoom(room);
 
         Lesson updated = lessonRepository.save(lesson);
         return lessonMapper.toResponse(updated);
     }
 
-    @Transactional
     @Override
+    @Transactional
     public void deleteLesson(Long timetableId, Long lessonId) {
         Lesson lesson = lessonRepository.findByTimetableIdAndId(timetableId, lessonId)
                 .orElseThrow(() -> new NotFoundException(
-                        "Lesson not found with id: " + lessonId + " in timetable: " + timetableId));
+                        "Lesson not found with id " + lessonId + " in timetable " + timetableId
+                ));
+
+        lesson.getGroups().clear();
 
         lessonRepository.delete(lesson);
+
+        log.info("Deleted lesson with id={} from timetable={}", lessonId, timetableId);
     }
 
     private Room resolveRoom(Long roomId) {

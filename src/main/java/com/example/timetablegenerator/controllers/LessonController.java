@@ -4,6 +4,7 @@ import com.example.timetablegenerator.domain.dto.request.LessonRequest;
 import com.example.timetablegenerator.domain.dto.response.LessonResponse;
 import com.example.timetablegenerator.exceptions.NotFoundException;
 import com.example.timetablegenerator.services.LessonService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
+@Tag(name = "Lessons")
 @RequestMapping("/api/timetables/{timetableId}/lessons")
 @RequiredArgsConstructor
 @Slf4j

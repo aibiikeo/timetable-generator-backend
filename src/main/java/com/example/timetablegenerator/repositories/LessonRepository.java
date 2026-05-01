@@ -2,7 +2,6 @@ package com.example.timetablegenerator.repositories;
 
 import com.example.timetablegenerator.domain.entities.Lesson;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -28,14 +27,6 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
 
     @Query("SELECT l FROM Lesson l JOIN l.groups g WHERE g.id = :groupId")
     List<Lesson> findByGroupId(@Param("groupId") Long groupId);
-
-    @Modifying
-    @Query("UPDATE Lesson l SET l.teacher = null WHERE l.teacher.id = :teacherId")
-    void detachTeacher(@Param("teacherId") Long teacherId);
-
-    @Modifying
-    @Query("UPDATE Lesson l SET l.assignment = null WHERE l.assignment.id IN :assignmentIds")
-    void detachAssignments(@Param("assignmentIds") List<Long> assignmentIds);
 
     List<Lesson> findBySubjectId(Long subjectId);
 
