@@ -31,11 +31,9 @@ public record AssignmentRequest(
         @Schema(example = "4")
         Integer hoursPerWeek,
 
-        @NotNull(message = "Shift is required")
         @Schema(example = "MORNING")
         Shift shift,
 
-        @NotNull(message = "Required room type is required")
         @Schema(example = "CLASSROOM")
         RoomType roomTypeRequired,
 

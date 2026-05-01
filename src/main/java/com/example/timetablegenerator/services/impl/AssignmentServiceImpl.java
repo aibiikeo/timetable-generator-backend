@@ -243,11 +243,6 @@ public class AssignmentServiceImpl implements AssignmentService {
             throw new IllegalArgumentException("hoursPerWeek must be greater than 0");
         }
 
-        if (request.shift() == null) {
-            log.warn("Shift is null in assignment request");
-            throw new IllegalArgumentException("shift must not be null");
-        }
-
         if (groups == null || groups.isEmpty()) {
             log.warn("Assignment validation failed: groups are empty");
             throw new IllegalArgumentException("Assignment must contain at least one study group");
