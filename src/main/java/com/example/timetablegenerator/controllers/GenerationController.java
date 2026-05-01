@@ -5,6 +5,7 @@ import com.example.timetablegenerator.domain.dto.request.GenerationMode;
 import com.example.timetablegenerator.domain.dto.response.AssignmentResponse;
 import com.example.timetablegenerator.domain.dto.response.GenerationResponse;
 import com.example.timetablegenerator.services.GenerationService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
+@Tag(name = "Generation")
 @RequestMapping("/api/generation")
 @RequiredArgsConstructor
 @Slf4j
