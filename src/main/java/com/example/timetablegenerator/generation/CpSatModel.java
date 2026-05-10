@@ -1,5 +1,7 @@
 package com.example.timetablegenerator.generation;
 
+import com.example.timetablegenerator.domain.entities.Room;
+import com.example.timetablegenerator.domain.entities.RoomType;
 import com.google.ortools.sat.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -22,12 +24,19 @@ public class CpSatModel {
     private record ResourceTimeKey(Long resourceId, DayOfWeek day, LocalTime slotTime) {}
     private record ResourceDayKey(Long resourceId, DayOfWeek day) {}
     private record AssignmentDayKey(Long assignmentId, DayOfWeek day) {}
+    private record RoomPoolTimeKey(
+            RoomType roomType,
+            int minCapacity,
+            DayOfWeek day,
+            LocalTime slotTime
+    ) {}
     private record PhaseOneBuild(
             CpModel model,
             Map<TimeVarKey, BoolVar> timeVars,
             Map<Long, BoolVar> unplacedVars,
             Map<ResourceTimeKey, List<BoolVar>> teacherOccupancy,
             Map<ResourceTimeKey, List<BoolVar>> groupOccupancy,
+            Map<RoomPoolTimeKey, List<BoolVar>> roomPoolOccupancy,
             Map<AssignmentDayKey, List<BoolVar>> assignmentDayOccupancy,
             List<LinearExpr> softTerms
     ) {}
@@ -51,12 +60,18 @@ public class CpSatModel {
 
     public SolveResult solve(
             List<LessonVertex> vertices,
-            SchedulingCandidateGenerator.CandidateContext context
+            SchedulingCandidateGenerator.CandidateContext context,
+            List<Room> allRooms
     ) {
-        PhaseOneBuild build = buildModel(vertices, context);
+        PhaseOneBuild build = buildModel(vertices, context, allRooms);
 
         addAtMostOneConstraints(build.model(), build.teacherOccupancy());
         addAtMostOneConstraints(build.model(), build.groupOccupancy());
+        addRoomPoolCapacityConstraints(
+                build.model(),
+                build.roomPoolOccupancy(),
+                allRooms
+        );
 
         Map<ResourceTimeKey, BoolVar> teacherBusyVars = createBusyVars(build.model(), build.teacherOccupancy(), "teacher");
         Map<ResourceTimeKey, BoolVar> groupBusyVars = createBusyVars(build.model(), build.groupOccupancy(), "group");
@@ -115,7 +130,8 @@ public class CpSatModel {
 
     private PhaseOneBuild buildModel(
             List<LessonVertex> vertices,
-            SchedulingCandidateGenerator.CandidateContext context
+            SchedulingCandidateGenerator.CandidateContext context,
+            List<Room> allRooms
     ) {
         CpModel model = new CpModel();
 
@@ -123,8 +139,11 @@ public class CpSatModel {
         Map<Long, BoolVar> unplacedVars = new HashMap<>();
         Map<ResourceTimeKey, List<BoolVar>> teacherOccupancy = new HashMap<>();
         Map<ResourceTimeKey, List<BoolVar>> groupOccupancy = new HashMap<>();
+        Map<RoomPoolTimeKey, List<BoolVar>> roomPoolOccupancy = new HashMap<>();
         Map<AssignmentDayKey, List<BoolVar>> assignmentDayOccupancy = new HashMap<>();
         List<LinearExpr> softTerms = new ArrayList<>();
+
+        Set<Integer> capacityThresholds = buildCapacityThresholds(vertices);
 
         for (LessonVertex vertex : vertices) {
             BoolVar unplaced = model.newBoolVar("unplaced_v_" + vertex.getId());
@@ -141,6 +160,7 @@ public class CpSatModel {
 
                 indexTeacherOccupancy(teacherOccupancy, vertex, candidate, var);
                 indexGroupOccupancy(groupOccupancy, vertex, candidate, var);
+                indexRoomPoolOccupancy(roomPoolOccupancy, vertex, candidate, var, capacityThresholds);
                 indexAssignmentDayOccupancy(assignmentDayOccupancy, vertex, candidate, var);
 
                 if (vertex.getPreferredDays() != null
@@ -164,14 +184,24 @@ public class CpSatModel {
             model.addExactlyOne(chooseOne.toArray(new Literal[0]));
         }
 
-        log.info("CP-SAT model stats: vertices={}, candidateTimes={}, timeVars={}, teacherBuckets={}, groupBuckets={}",
+        log.info("CP-SAT model stats: vertices={}, candidateTimes={}, timeVars={}, teacherBuckets={}, groupBuckets={}, roomPoolBuckets={}",
                 vertices.size(),
                 context.candidatesByVertex().values().stream().mapToInt(List::size).sum(),
                 timeVars.size(),
                 teacherOccupancy.size(),
-                groupOccupancy.size());
+                groupOccupancy.size(),
+                roomPoolOccupancy.size());
 
-        return new PhaseOneBuild(model, timeVars, unplacedVars, teacherOccupancy, groupOccupancy, assignmentDayOccupancy, softTerms);
+        return new PhaseOneBuild(
+                model,
+                timeVars,
+                unplacedVars,
+                teacherOccupancy,
+                groupOccupancy,
+                roomPoolOccupancy,
+                assignmentDayOccupancy,
+                softTerms
+        );
     }
 
     private int dynamicUnplacedPenalty(LessonVertex vertex, int candidateCount) {
@@ -215,6 +245,48 @@ public class CpSatModel {
             for (LocalTime coveredSlot : candidate.coveredSlots()) {
                 ResourceTimeKey key = new ResourceTimeKey(groupId, candidate.day(), coveredSlot);
                 groupOccupancy.computeIfAbsent(key, _k -> new ArrayList<>()).add(var);
+            }
+        }
+    }
+
+    private void indexRoomPoolOccupancy(
+            Map<RoomPoolTimeKey, List<BoolVar>> roomPoolOccupancy,
+            LessonVertex vertex,
+            SchedulingCandidateGenerator.TimeCandidate candidate,
+            BoolVar var,
+            Set<Integer> capacityThresholds
+    ) {
+        int requiredCapacity = normalizeRequiredCapacity(vertex.getRoomCapacityRequired());
+
+        for (LocalTime coveredSlot : candidate.coveredSlots()) {
+            for (Integer threshold : capacityThresholds) {
+                if (requiredCapacity >= threshold) {
+                    RoomPoolTimeKey key = new RoomPoolTimeKey(
+                            null,
+                            threshold,
+                            candidate.day(),
+                            coveredSlot
+                    );
+                    roomPoolOccupancy
+                            .computeIfAbsent(key, _k -> new ArrayList<>())
+                            .add(var);
+                }
+            }
+
+            if (vertex.getRoomTypeRequired() != null && vertex.getRoomTypeRequired() != RoomType.ANY) {
+                for (Integer threshold : capacityThresholds) {
+                    if (requiredCapacity >= threshold) {
+                        RoomPoolTimeKey key = new RoomPoolTimeKey(
+                                vertex.getRoomTypeRequired(),
+                                threshold,
+                                candidate.day(),
+                                coveredSlot
+                        );
+                        roomPoolOccupancy
+                                .computeIfAbsent(key, _k -> new ArrayList<>())
+                                .add(var);
+                    }
+                }
             }
         }
     }
@@ -344,6 +416,80 @@ public class CpSatModel {
         BoolVar zero = model.newBoolVar(name);
         model.addEquality(zero, 0);
         return zero;
+    }
+
+    private void addRoomPoolCapacityConstraints(
+            CpModel model,
+            Map<RoomPoolTimeKey, List<BoolVar>> roomPoolOccupancy,
+            List<Room> allRooms
+    ) {
+        for (Map.Entry<RoomPoolTimeKey, List<BoolVar>> entry : roomPoolOccupancy.entrySet()) {
+            List<BoolVar> vars = entry.getValue();
+            if (vars.isEmpty()) continue;
+
+            RoomPoolTimeKey key = entry.getKey();
+            int availableRooms = countAvailableRoomsForPool(
+                    allRooms,
+                    key.roomType(),
+                    key.minCapacity()
+            );
+
+            if (availableRooms <= 0) {
+                model.addEquality(
+                        LinearExpr.sum(vars.toArray(new IntVar[0])),
+                        0
+                );
+                continue;
+            }
+
+            model.addLessOrEqual(
+                    LinearExpr.sum(vars.toArray(new IntVar[0])),
+                    availableRooms
+            );
+        }
+    }
+
+    private int countAvailableRoomsForPool(
+            List<Room> allRooms,
+            RoomType roomType,
+            int minCapacity
+    ) {
+        int count = 0;
+
+        for (Room room : allRooms) {
+            if (roomType != null && room.getType() != roomType) {
+                continue;
+            }
+
+            if (minCapacity > 0) {
+                Integer roomCapacity = room.getCapacity();
+                if (roomCapacity == null || roomCapacity < minCapacity) {
+                    continue;
+                }
+            }
+
+            count++;
+        }
+
+        return count;
+    }
+
+    private Set<Integer> buildCapacityThresholds(List<LessonVertex> vertices) {
+        Set<Integer> thresholds = new TreeSet<>();
+        thresholds.add(0);
+
+        for (LessonVertex vertex : vertices) {
+            int requiredCapacity = normalizeRequiredCapacity(vertex.getRoomCapacityRequired());
+            if (requiredCapacity > 0) {
+                thresholds.add(requiredCapacity);
+            }
+        }
+
+        return thresholds;
+    }
+
+    private int normalizeRequiredCapacity(Integer requiredCapacity) {
+        return requiredCapacity == null ? 0 : Math.max(requiredCapacity, 0);
     }
 
     private void addAtMostOneConstraints(

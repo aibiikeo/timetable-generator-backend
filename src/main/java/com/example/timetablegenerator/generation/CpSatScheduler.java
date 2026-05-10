@@ -37,7 +37,7 @@ public class CpSatScheduler {
         diagnostics.logCandidateSummary(vertices, candidateContext);
 
         CpSatModel.SolveResult solveResult =
-                modelFacade.solve(vertices, candidateContext);
+                modelFacade.solve(vertices, candidateContext, allRooms);
 
         diagnostics.logSolveOutcome(vertices, candidateContext, solveResult);
 

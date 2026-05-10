@@ -29,6 +29,10 @@ public class AssignmentLessonExpander {
                     .map(StudyGroup::getId)
                     .collect(Collectors.toSet());
 
+            int roomCapacity = assignment.getGroups().stream()
+                    .mapToInt(group -> group.getStudentCount() == null ? 0 : group.getStudentCount())
+                    .sum();
+
             for (Integer duration : parts) {
                 LessonVertex vertex = new LessonVertex();
                 vertex.setId(vertexId++);
@@ -37,6 +41,7 @@ public class AssignmentLessonExpander {
                 vertex.setTeacherId(assignment.getTeacher() != null ? assignment.getTeacher().getId() : null);
                 vertex.setShift(assignment.getShift());
                 vertex.setRoomTypeRequired(assignment.getRoomTypeRequired());
+                vertex.setRoomCapacityRequired(roomCapacity);
                 vertex.setSpecificRoomId(assignment.getSpecificRoomId());
                 vertex.setDurationHours(duration);
                 vertex.setExcludedDays(

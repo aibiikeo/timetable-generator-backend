@@ -161,6 +161,13 @@ public class SchedulingCandidateGenerator {
                     && room.getType() != vertex.getRoomTypeRequired()) {
                 continue;
             }
+
+            if (vertex.getRoomCapacityRequired() != null
+                    && room.getCapacity() != null
+                    && room.getCapacity() < vertex.getRoomCapacityRequired()) {
+                continue;
+            }
+
             result.add(room);
         }
 

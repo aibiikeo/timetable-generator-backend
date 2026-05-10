@@ -20,6 +20,7 @@ public class LessonVertex {
 
     private Shift shift;
     private RoomType roomTypeRequired;
+    private Integer roomCapacityRequired;
     private Long specificRoomId;
 
     private int durationHours;

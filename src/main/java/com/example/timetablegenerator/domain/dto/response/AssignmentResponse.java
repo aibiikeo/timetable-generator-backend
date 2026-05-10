@@ -18,6 +18,7 @@ public record AssignmentResponse(
         Integer hoursPerWeek,
         Shift shift,
         RoomType roomTypeRequired,
+        Long specificRoomId,
         String hoursSplitting,
         int generatedLessonsCount,
         int requiredLessonsCount,
