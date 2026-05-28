@@ -1,6 +1,7 @@
 package com.example.timetablegenerator.repositories;
 
 import com.example.timetablegenerator.domain.entities.Lesson;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,6 +16,19 @@ import java.util.Optional;
 public interface LessonRepository extends JpaRepository<Lesson, Long> {
 
     List<Lesson> findByTimetableId(Long timetableId);
+
+    @EntityGraph(attributePaths = {
+            "timetable",
+            "subject",
+            "subject.major",
+            "subject.major.department",
+            "subject.major.department.faculty",
+            "teacher",
+            "room",
+            "groups"
+    })
+    List<Lesson> findByTimetableIdOrderByDayOfWeekAscStartTimeAsc(Long timetableId);
+
     Optional<Lesson> findByTimetableIdAndId(Long timetableId, Long id);
 
     List<Lesson> findByAssignmentId(Long assignmentId);

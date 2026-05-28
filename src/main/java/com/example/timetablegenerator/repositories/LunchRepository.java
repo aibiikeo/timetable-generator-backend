@@ -24,4 +24,6 @@ public interface LunchRepository extends JpaRepository<Lunch, Long> {
     void deleteByTimetableId(Long timetableId);
 
     void deleteByTimetableIdAndGroupId(Long timetableId, Long groupId);
+
+    void deleteByTimetableIdAndManualFalse(Long timetableId);
 }
