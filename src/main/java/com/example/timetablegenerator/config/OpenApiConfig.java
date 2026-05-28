@@ -34,7 +34,8 @@ import org.springframework.context.annotation.Configuration;
                 @Tag(name = "Timetables"),
                 @Tag(name = "Assignments"),
                 @Tag(name = "Generation"),
-                @Tag(name = "Lessons")
+                @Tag(name = "Lessons"),
+                @Tag(name = "AIU Public Timetable")
         },
         security = {
                 @SecurityRequirement(name = "bearerAuth")
