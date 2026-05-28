@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -15,6 +16,10 @@ import java.util.stream.Collectors;
 public class AssignmentLessonExpander {
 
     public List<LessonVertex> buildVertices(List<Assignment> assignments) {
+        return buildVertices(assignments, Collections.emptyMap());
+    }
+
+    public List<LessonVertex> buildVertices(List<Assignment> assignments, Map<Long, Integer> assignedHoursByAssignment) {
         List<LessonVertex> vertices = new ArrayList<>();
         long vertexId = 1L;
 
@@ -23,6 +28,10 @@ public class AssignmentLessonExpander {
                     assignment.getHoursSplitting(),
                     assignment.getHoursPerWeek()
             );
+            parts = remainingParts(parts, assignedHoursByAssignment.getOrDefault(assignment.getId(), 0));
+            if (parts.isEmpty()) {
+                continue;
+            }
 
             Set<Long> groupIds = assignment.getGroups()
                     .stream()
@@ -64,5 +73,30 @@ public class AssignmentLessonExpander {
         }
 
         return vertices;
+    }
+
+    private List<Integer> remainingParts(List<Integer> parts, int alreadyAssignedHours) {
+        if (alreadyAssignedHours <= 0) {
+            return parts;
+        }
+
+        List<Integer> remaining = new ArrayList<>();
+        int hoursToConsume = alreadyAssignedHours;
+
+        for (Integer part : parts) {
+            if (hoursToConsume >= part) {
+                hoursToConsume -= part;
+                continue;
+            }
+
+            if (hoursToConsume > 0) {
+                remaining.add(part - hoursToConsume);
+                hoursToConsume = 0;
+            } else {
+                remaining.add(part);
+            }
+        }
+
+        return remaining;
     }
 }

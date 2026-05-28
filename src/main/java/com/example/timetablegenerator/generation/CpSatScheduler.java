@@ -1,6 +1,7 @@
 package com.example.timetablegenerator.generation;
 
 import com.example.timetablegenerator.domain.entities.Room;
+import com.example.timetablegenerator.domain.entities.Lesson;
 import com.google.ortools.Loader;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -31,13 +32,22 @@ public class CpSatScheduler {
             List<Room> allRooms,
             Map<DayOfWeek, List<TimeSlotInfo>> slotsByDay
     ) {
+        return schedule(vertices, allRooms, slotsByDay, Collections.emptyList());
+    }
+
+    public SchedulingResult schedule(
+            List<LessonVertex> vertices,
+            List<Room> allRooms,
+            Map<DayOfWeek, List<TimeSlotInfo>> slotsByDay,
+            List<Lesson> fixedLessons
+    ) {
         SchedulingCandidateGenerator.CandidateContext candidateContext =
-                candidateGenerator.build(vertices, allRooms, slotsByDay);
+                candidateGenerator.build(vertices, allRooms, slotsByDay, fixedLessons);
 
         diagnostics.logCandidateSummary(vertices, candidateContext);
 
         CpSatModel.SolveResult solveResult =
-                modelFacade.solve(vertices, candidateContext, allRooms);
+                modelFacade.solve(vertices, candidateContext, allRooms, fixedLessons);
 
         diagnostics.logSolveOutcome(vertices, candidateContext, solveResult);
 

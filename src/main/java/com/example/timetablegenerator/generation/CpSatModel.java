@@ -1,7 +1,9 @@
 package com.example.timetablegenerator.generation;
 
+import com.example.timetablegenerator.domain.entities.Lesson;
 import com.example.timetablegenerator.domain.entities.Room;
 import com.example.timetablegenerator.domain.entities.RoomType;
+import com.example.timetablegenerator.domain.entities.StudyGroup;
 import com.google.ortools.sat.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -23,6 +25,7 @@ public class CpSatModel {
     private record TimeVarKey(Long vertexId, DayOfWeek day, LocalTime startTime) {}
     private record ResourceTimeKey(Long resourceId, DayOfWeek day, LocalTime slotTime) {}
     private record ResourceDayKey(Long resourceId, DayOfWeek day) {}
+    private record LunchWindowKey(Long groupId, DayOfWeek day) {}
     private record AssignmentDayKey(Long assignmentId, DayOfWeek day) {}
     private record RoomPoolTimeKey(
             RoomType roomType,
@@ -57,16 +60,33 @@ public class CpSatModel {
 
     private static final int GROUP_DAILY_LOAD_LIMIT = 4;
     private static final int TEACHER_DAILY_LOAD_LIMIT = 5;
+    private static final LocalTime LUNCH_WINDOW_START = LocalTime.NOON;
+    private static final LocalTime LUNCH_WINDOW_END = LocalTime.of(14, 0);
 
     public SolveResult solve(
             List<LessonVertex> vertices,
             SchedulingCandidateGenerator.CandidateContext context,
             List<Room> allRooms
     ) {
+        return solve(vertices, context, allRooms, Collections.emptyList());
+    }
+
+    public SolveResult solve(
+            List<LessonVertex> vertices,
+            SchedulingCandidateGenerator.CandidateContext context,
+            List<Room> allRooms,
+            List<Lesson> fixedLessons
+    ) {
         PhaseOneBuild build = buildModel(vertices, context, allRooms);
 
         addAtMostOneConstraints(build.model(), build.teacherOccupancy());
         addAtMostOneConstraints(build.model(), build.groupOccupancy());
+        addLunchWindowReservationConstraints(
+                build.model(),
+                build.groupOccupancy(),
+                context.normalizedSlots(),
+                fixedLessons
+        );
         addRoomPoolCapacityConstraints(
                 build.model(),
                 build.roomPoolOccupancy(),
@@ -501,6 +521,148 @@ public class CpSatModel {
                 model.addAtMostOne(vars.toArray(new Literal[0]));
             }
         }
+    }
+
+    private void addLunchWindowReservationConstraints(
+            CpModel model,
+            Map<ResourceTimeKey, List<BoolVar>> groupOccupancy,
+            Map<DayOfWeek, List<CpSatScheduler.TimeSlotInfo>> normalizedSlots,
+            List<Lesson> fixedLessons
+    ) {
+        Map<LunchWindowKey, Integer> lunchSlotCountByGroupDay = countLunchSlotsByGroupDay(groupOccupancy, normalizedSlots);
+        Map<LunchWindowKey, Integer> fixedLunchOccupancy = countFixedLunchOccupancy(fixedLessons, normalizedSlots);
+
+        for (Map.Entry<LunchWindowKey, Integer> entry : lunchSlotCountByGroupDay.entrySet()) {
+            LunchWindowKey key = entry.getKey();
+            int lunchSlotCount = entry.getValue();
+            if (lunchSlotCount <= 1) {
+                continue;
+            }
+
+            int maxGeneratedOccupancy = lunchSlotCount - 1 - fixedLunchOccupancy.getOrDefault(key, 0);
+            maxGeneratedOccupancy = Math.max(maxGeneratedOccupancy, 0);
+
+            List<BoolVar> lunchVars = new ArrayList<>();
+            for (CpSatScheduler.TimeSlotInfo slot : normalizedSlots.getOrDefault(key.day(), Collections.emptyList())) {
+                if (!isLunchWindowSlot(slot)) {
+                    continue;
+                }
+                lunchVars.addAll(groupOccupancy.getOrDefault(
+                        new ResourceTimeKey(key.groupId(), key.day(), slot.startTime()),
+                        Collections.emptyList()
+                ));
+            }
+
+            if (!lunchVars.isEmpty()) {
+                model.addLessOrEqual(
+                        LinearExpr.sum(lunchVars.toArray(new IntVar[0])),
+                        maxGeneratedOccupancy
+                );
+            }
+        }
+    }
+
+    private Map<LunchWindowKey, Integer> countLunchSlotsByGroupDay(
+            Map<ResourceTimeKey, List<BoolVar>> groupOccupancy,
+            Map<DayOfWeek, List<CpSatScheduler.TimeSlotInfo>> normalizedSlots
+    ) {
+        Map<DayOfWeek, Integer> lunchSlotCountByDay = new EnumMap<>(DayOfWeek.class);
+        for (Map.Entry<DayOfWeek, List<CpSatScheduler.TimeSlotInfo>> entry : normalizedSlots.entrySet()) {
+            int count = (int) entry.getValue().stream()
+                    .filter(this::isLunchWindowSlot)
+                    .count();
+            lunchSlotCountByDay.put(entry.getKey(), count);
+        }
+
+        Set<LunchWindowKey> groupDays = groupOccupancy.keySet().stream()
+                .map(key -> new LunchWindowKey(key.resourceId(), key.day()))
+                .collect(Collectors.toSet());
+
+        Map<LunchWindowKey, Integer> result = new HashMap<>();
+        for (LunchWindowKey key : groupDays) {
+            result.put(key, lunchSlotCountByDay.getOrDefault(key.day(), 0));
+        }
+        return result;
+    }
+
+    private Map<LunchWindowKey, Integer> countFixedLunchOccupancy(
+            List<Lesson> fixedLessons,
+            Map<DayOfWeek, List<CpSatScheduler.TimeSlotInfo>> normalizedSlots
+    ) {
+        Map<LunchWindowKey, Set<LocalTime>> occupiedLunchSlots = new HashMap<>();
+
+        for (Lesson lesson : fixedLessons) {
+            if (lesson.getGroups() == null || lesson.getGroups().isEmpty()) {
+                continue;
+            }
+
+            List<LocalTime> coveredSlots = coveredSlotsForFixedLesson(lesson, normalizedSlots);
+            for (LocalTime slotTime : coveredSlots) {
+                CpSatScheduler.TimeSlotInfo slotInfo = findSlotInfo(normalizedSlots, lesson.getDayOfWeek(), slotTime);
+                if (slotInfo == null || !isLunchWindowSlot(slotInfo)) {
+                    continue;
+                }
+
+                for (StudyGroup group : lesson.getGroups()) {
+                    if (group.getId() != null) {
+                        occupiedLunchSlots
+                                .computeIfAbsent(new LunchWindowKey(group.getId(), lesson.getDayOfWeek()), _key -> new HashSet<>())
+                                .add(slotTime);
+                    }
+                }
+            }
+        }
+
+        Map<LunchWindowKey, Integer> result = new HashMap<>();
+        for (Map.Entry<LunchWindowKey, Set<LocalTime>> entry : occupiedLunchSlots.entrySet()) {
+            result.put(entry.getKey(), entry.getValue().size());
+        }
+        return result;
+    }
+
+    private List<LocalTime> coveredSlotsForFixedLesson(
+            Lesson lesson,
+            Map<DayOfWeek, List<CpSatScheduler.TimeSlotInfo>> normalizedSlots
+    ) {
+        List<CpSatScheduler.TimeSlotInfo> daySlots =
+                normalizedSlots.getOrDefault(lesson.getDayOfWeek(), Collections.emptyList());
+
+        for (int i = 0; i < daySlots.size(); i++) {
+            if (!daySlots.get(i).startTime().equals(lesson.getStartTime())) {
+                continue;
+            }
+
+            int endExclusive = Math.min(i + lesson.getDurationHours(), daySlots.size());
+            List<LocalTime> result = new ArrayList<>();
+            for (int j = i; j < endExclusive; j++) {
+                result.add(daySlots.get(j).startTime());
+            }
+            return result;
+        }
+
+        List<LocalTime> fallback = new ArrayList<>();
+        for (int h = 0; h < lesson.getDurationHours(); h++) {
+            fallback.add(lesson.getStartTime().plusHours(h));
+        }
+        return fallback;
+    }
+
+    private CpSatScheduler.TimeSlotInfo findSlotInfo(
+            Map<DayOfWeek, List<CpSatScheduler.TimeSlotInfo>> normalizedSlots,
+            DayOfWeek day,
+            LocalTime startTime
+    ) {
+        for (CpSatScheduler.TimeSlotInfo slot : normalizedSlots.getOrDefault(day, Collections.emptyList())) {
+            if (slot.startTime().equals(startTime)) {
+                return slot;
+            }
+        }
+        return null;
+    }
+
+    private boolean isLunchWindowSlot(CpSatScheduler.TimeSlotInfo slot) {
+        return !slot.startTime().isBefore(LUNCH_WINDOW_START)
+                && !slot.endTime().isAfter(LUNCH_WINDOW_END);
     }
 
     private Map<Long, SchedulingCandidateGenerator.TimeCandidate> extractSelectedTimes(

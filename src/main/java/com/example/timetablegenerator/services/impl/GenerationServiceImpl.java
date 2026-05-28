@@ -37,6 +37,7 @@ public class GenerationServiceImpl implements GenerationService {
     private final RoomRepository roomRepository;
     private final LessonRepository lessonRepository;
     private final TimeSlotRepository timeSlotRepository;
+    private final LunchRepository lunchRepository;
 
     private final AssignmentLessonExpander assignmentLessonExpander;
     private final CpSatScheduler cpSatScheduler;
@@ -111,10 +112,19 @@ public class GenerationServiceImpl implements GenerationService {
 
         if (mode == GenerationMode.NEW) {
             lessonRepository.deleteAll(lessonRepository.findByTimetableId(timetableId));
+            lunchRepository.deleteByTimetableIdAndManualFalse(timetableId);
             log.info("Generation mode NEW: existing lessons deleted for timetableId={}", timetableId);
         } else {
             log.info("Generation mode APPEND: existing lessons kept for timetableId={}", timetableId);
         }
+
+        List<Lesson> existingLessons = lessonRepository.findByTimetableId(timetableId);
+        Map<Long, Integer> existingHoursByAssignment = existingLessons.stream()
+                .filter(lesson -> lesson.getAssignment() != null && lesson.getAssignment().getId() != null)
+                .collect(Collectors.groupingBy(
+                        lesson -> lesson.getAssignment().getId(),
+                        Collectors.summingInt(Lesson::getDurationHours)
+                ));
 
         Map<DayOfWeek, List<CpSatScheduler.TimeSlotInfo>> slotsByDay = new EnumMap<>(DayOfWeek.class);
         for (DayOfWeek day : TEACHING_DAYS) {
@@ -127,7 +137,7 @@ public class GenerationServiceImpl implements GenerationService {
             log.info("Generation input: day={} lessonSlots={}", day, slotInfos.size());
         }
 
-        List<LessonVertex> vertices = assignmentLessonExpander.buildVertices(assignments);
+        List<LessonVertex> vertices = assignmentLessonExpander.buildVertices(assignments, existingHoursByAssignment);
         List<Room> allRooms = roomRepository.findAll();
 
         log.info(
@@ -141,7 +151,7 @@ public class GenerationServiceImpl implements GenerationService {
 
         long startedAt = System.currentTimeMillis();
         CpSatScheduler.SchedulingResult schedulingResult =
-                cpSatScheduler.schedule(vertices, allRooms, slotsByDay);
+                cpSatScheduler.schedule(vertices, allRooms, slotsByDay, existingLessons);
         long elapsedMs = System.currentTimeMillis() - startedAt;
 
         Map<Long, CpSatScheduler.ScheduledSlot> placement = schedulingResult.placed();
@@ -198,7 +208,12 @@ public class GenerationServiceImpl implements GenerationService {
         Map<Long, Integer> assignedHoursByAssignment = new HashMap<>();
         Map<Long, Integer> assignedLessonsCountByAssignment = new HashMap<>();
 
-        for (Lesson lesson : lessonsToSave) {
+        List<Lesson> allTimetableLessons = new ArrayList<>(existingLessons);
+        allTimetableLessons.addAll(lessonsToSave);
+
+        regenerateAutomaticLunches(timetableId, assignments, slotsByDay, allTimetableLessons);
+
+        for (Lesson lesson : allTimetableLessons) {
             Long assignmentId = lesson.getAssignment().getId();
             assignedHoursByAssignment.merge(assignmentId, lesson.getDurationHours(), Integer::sum);
             assignedLessonsCountByAssignment.merge(assignmentId, 1, Integer::sum);
@@ -409,4 +424,109 @@ public class GenerationServiceImpl implements GenerationService {
                 .map(dto -> new TimeSlotExclusion(dto.day(), dto.startTime(), dto.endTime()))
                 .collect(Collectors.toList());
     }
+
+    private void regenerateAutomaticLunches(
+            Long timetableId,
+            List<Assignment> assignments,
+            Map<DayOfWeek, List<CpSatScheduler.TimeSlotInfo>> slotsByDay,
+            List<Lesson> lessons
+    ) {
+        lunchRepository.deleteByTimetableIdAndManualFalse(timetableId);
+
+        Set<GroupDayKey> manualLunches = lunchRepository.findByTimetableId(timetableId).stream()
+                .filter(Lunch::isManual)
+                .map(lunch -> new GroupDayKey(lunch.getGroupId(), lunch.getDayOfWeek()))
+                .collect(Collectors.toSet());
+
+        Set<StudyGroup> groups = assignments.stream()
+                .flatMap(assignment -> assignment.getGroups().stream())
+                .collect(Collectors.toCollection(() -> new TreeSet<>(Comparator.comparing(StudyGroup::getId))));
+
+        Map<GroupDayKey, List<Lesson>> lessonsByGroupDay = new HashMap<>();
+        for (Lesson lesson : lessons) {
+            if (lesson.getGroups() == null) continue;
+            for (StudyGroup group : lesson.getGroups()) {
+                lessonsByGroupDay
+                        .computeIfAbsent(new GroupDayKey(group.getId(), lesson.getDayOfWeek()), _key -> new ArrayList<>())
+                        .add(lesson);
+            }
+        }
+
+        List<Lunch> lunchesToSave = new ArrayList<>();
+        for (StudyGroup group : groups) {
+            for (DayOfWeek day : TEACHING_DAYS) {
+                GroupDayKey key = new GroupDayKey(group.getId(), day);
+                if (manualLunches.contains(key)) {
+                    continue;
+                }
+
+                findLunchSlot(slotsByDay.getOrDefault(day, Collections.emptyList()), lessonsByGroupDay.getOrDefault(key, Collections.emptyList()))
+                        .ifPresent(slot -> lunchesToSave.add(Lunch.builder()
+                                .timetableId(timetableId)
+                                .groupId(group.getId())
+                                .dayOfWeek(day)
+                                .startTime(slot.startTime())
+                                .endTime(slot.endTime())
+                                .manual(false)
+                                .build()));
+            }
+        }
+
+        if (!lunchesToSave.isEmpty()) {
+            lunchRepository.saveAll(lunchesToSave);
+        }
+
+        log.info("Automatic lunch regenerated: timetableId={}, count={}", timetableId, lunchesToSave.size());
+    }
+
+    private Optional<CpSatScheduler.TimeSlotInfo> findLunchSlot(
+            List<CpSatScheduler.TimeSlotInfo> daySlots,
+            List<Lesson> dayLessons
+    ) {
+        return daySlots.stream()
+                .filter(slot -> !slot.startTime().isBefore(LocalTime.NOON)
+                        && !slot.endTime().isAfter(LocalTime.of(14, 0)))
+                .filter(slot -> isLunchSlotFree(slot, daySlots, dayLessons))
+                .findFirst();
+    }
+
+    private boolean isLunchSlotFree(
+            CpSatScheduler.TimeSlotInfo slot,
+            List<CpSatScheduler.TimeSlotInfo> daySlots,
+            List<Lesson> dayLessons
+    ) {
+        for (Lesson lesson : dayLessons) {
+            List<CpSatScheduler.TimeSlotInfo> lessonSlots = coveredTimeSlotInfos(lesson, daySlots);
+            for (CpSatScheduler.TimeSlotInfo lessonSlot : lessonSlots) {
+                boolean overlaps = slot.startTime().isBefore(lessonSlot.endTime())
+                        && slot.endTime().isAfter(lessonSlot.startTime());
+                if (overlaps) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private List<CpSatScheduler.TimeSlotInfo> coveredTimeSlotInfos(
+            Lesson lesson,
+            List<CpSatScheduler.TimeSlotInfo> daySlots
+    ) {
+        for (int i = 0; i < daySlots.size(); i++) {
+            if (!daySlots.get(i).startTime().equals(lesson.getStartTime())) {
+                continue;
+            }
+
+            int endExclusive = Math.min(i + lesson.getDurationHours(), daySlots.size());
+            return new ArrayList<>(daySlots.subList(i, endExclusive));
+        }
+
+        return List.of(new CpSatScheduler.TimeSlotInfo(
+                lesson.getStartTime(),
+                lesson.getStartTime().plusHours(lesson.getDurationHours())
+        ));
+    }
+
+    private record GroupDayKey(Long groupId, DayOfWeek day) {}
 }

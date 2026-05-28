@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalTime;
 import java.util.List;
 
 
@@ -21,6 +22,8 @@ import java.util.List;
 public class LunchServiceImpl implements LunchService {
 
     private final LunchRepository lunchRepository;
+    private static final LocalTime LUNCH_WINDOW_START = LocalTime.NOON;
+    private static final LocalTime LUNCH_WINDOW_END = LocalTime.of(14, 0);
 
     @Override
     @Transactional
@@ -103,6 +106,9 @@ public class LunchServiceImpl implements LunchService {
     private void validateTimes(LunchRequest request) {
         if (!request.getEndTime().isAfter(request.getStartTime())) {
             throw new IllegalArgumentException("Lunch endTime must be after startTime");
+        }
+        if (request.getStartTime().isBefore(LUNCH_WINDOW_START) || request.getEndTime().isAfter(LUNCH_WINDOW_END)) {
+            throw new IllegalArgumentException("Lunch must be between 12:00 and 14:00");
         }
     }
 

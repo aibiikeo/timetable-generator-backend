@@ -21,8 +21,6 @@ public class RoomMatchingAssigner {
 
     private record RoomOccupancyKey(Long roomId, DayOfWeek day, LocalTime slotTime) {}
 
-    private final SchedulingCandidateGenerator candidateGenerator;
-
     public RoomAssignmentResult assign(
             Map<Long, SchedulingCandidateGenerator.TimeCandidate> selectedTimes,
             List<LessonVertex> vertices,
@@ -53,7 +51,7 @@ public class RoomMatchingAssigner {
                     LessonVertex vertex = vertexById.get(vertexId);
                     SchedulingCandidateGenerator.TimeCandidate candidate = selectedTimes.get(vertexId);
 
-                    List<Long> roomIds = candidateGenerator.filterRoomsByConstraints(allRooms, vertex).stream()
+                    List<Long> roomIds = candidate.allowedRooms().stream()
                             .map(Room::getId)
                             .filter(id -> isRoomFree(id, candidate, occupied))
                             .toList();

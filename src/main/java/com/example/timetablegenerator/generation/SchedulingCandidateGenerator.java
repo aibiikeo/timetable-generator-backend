@@ -3,6 +3,8 @@ package com.example.timetablegenerator.generation;
 import com.example.timetablegenerator.domain.entities.Room;
 import com.example.timetablegenerator.domain.entities.RoomType;
 import com.example.timetablegenerator.domain.entities.Shift;
+import com.example.timetablegenerator.domain.entities.Lesson;
+import com.example.timetablegenerator.domain.entities.StudyGroup;
 import com.example.timetablegenerator.domain.entities.TimeSlotExclusion;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -39,23 +41,32 @@ public class SchedulingCandidateGenerator {
             DayOfWeek.SATURDAY
     );
 
-    private static final LocalTime LUNCH_BAND_START = LocalTime.of(12, 0);
-    private static final LocalTime LUNCH_BAND_END = LocalTime.of(14, 0);
-
     public CandidateContext build(
             List<LessonVertex> vertices,
             List<Room> allRooms,
             Map<DayOfWeek, List<CpSatScheduler.TimeSlotInfo>> slotsByDay
     ) {
+        return build(vertices, allRooms, slotsByDay, Collections.emptyList());
+    }
+
+    public CandidateContext build(
+            List<LessonVertex> vertices,
+            List<Room> allRooms,
+            Map<DayOfWeek, List<CpSatScheduler.TimeSlotInfo>> slotsByDay,
+            List<Lesson> fixedLessons
+    ) {
         Map<DayOfWeek, List<CpSatScheduler.TimeSlotInfo>> normalizedSlots = normalizeSlots(slotsByDay);
-        Map<Long, List<TimeCandidate>> candidatesByVertex = precomputeCandidates(vertices, allRooms, normalizedSlots);
+        FixedOccupancy fixedOccupancy = FixedOccupancy.from(fixedLessons, normalizedSlots);
+        Map<Long, List<TimeCandidate>> candidatesByVertex =
+                precomputeCandidates(vertices, allRooms, normalizedSlots, fixedOccupancy);
         return new CandidateContext(normalizedSlots, candidatesByVertex);
     }
 
     private Map<Long, List<TimeCandidate>> precomputeCandidates(
             List<LessonVertex> vertices,
             List<Room> allRooms,
-            Map<DayOfWeek, List<CpSatScheduler.TimeSlotInfo>> normalizedSlots
+            Map<DayOfWeek, List<CpSatScheduler.TimeSlotInfo>> normalizedSlots,
+            FixedOccupancy fixedOccupancy
     ) {
         Map<Long, List<TimeCandidate>> result = new HashMap<>();
 
@@ -76,15 +87,20 @@ public class SchedulingCandidateGenerator {
                 List<CpSatScheduler.TimeSlotInfo> daySlots = normalizedSlots.getOrDefault(day, Collections.emptyList());
                 if (daySlots.isEmpty()) continue;
 
-                Set<Integer> lunchSlotIndexes = deriveLunchSlotIndexes(daySlots);
-
                 for (int startIdx = 0; startIdx < daySlots.size(); startIdx++) {
                     if (!isValidBlock(daySlots, startIdx, vertex.getDurationHours())) continue;
-                    if (blocksEntireLunchWindow(daySlots, startIdx, vertex.getDurationHours(), lunchSlotIndexes)) continue;
 
                     CpSatScheduler.TimeSlotInfo startSlot = daySlots.get(startIdx);
                     if (!isShiftCompatible(vertex.getShift(), startSlot.startTime())) continue;
                     if (isExcludedByTimeRule(vertex, day, daySlots, startIdx, vertex.getDurationHours())) continue;
+
+                    List<LocalTime> coveredSlots = coveredSlots(daySlots, startIdx, vertex.getDurationHours());
+                    if (conflictsWithFixedLessons(vertex, day, coveredSlots, fixedOccupancy)) continue;
+
+                    List<Room> roomsAvailableForTime = allowedRooms.stream()
+                            .filter(room -> isRoomFreeForFixedLessons(room, day, coveredSlots, fixedOccupancy))
+                            .toList();
+                    if (roomsAvailableForTime.isEmpty()) continue;
 
                     int softScore = estimateCandidateSoftScore(vertex, day, startSlot.startTime());
 
@@ -92,8 +108,8 @@ public class SchedulingCandidateGenerator {
                             day,
                             startIdx,
                             startSlot.startTime(),
-                            coveredSlots(daySlots, startIdx, vertex.getDurationHours()),
-                            allowedRooms,
+                            coveredSlots,
+                            roomsAvailableForTime,
                             softScore
                     ));
                 }
@@ -187,56 +203,6 @@ public class SchedulingCandidateGenerator {
         return result;
     }
 
-    private Set<Integer> deriveLunchSlotIndexes(List<CpSatScheduler.TimeSlotInfo> daySlots) {
-        Set<Integer> result = new LinkedHashSet<>();
-
-        for (int i = 0; i < daySlots.size(); i++) {
-            CpSatScheduler.TimeSlotInfo slot = daySlots.get(i);
-
-            boolean insideLunchBand =
-                    !slot.startTime().isBefore(LUNCH_BAND_START) &&
-                            !slot.endTime().isAfter(LUNCH_BAND_END);
-
-            if (insideLunchBand) {
-                result.add(i);
-            }
-        }
-
-        if (result.isEmpty()) {
-            for (int i = 0; i < daySlots.size(); i++) {
-                CpSatScheduler.TimeSlotInfo slot = daySlots.get(i);
-
-                boolean overlapsLunchBand =
-                        slot.startTime().isBefore(LUNCH_BAND_END) &&
-                                slot.endTime().isAfter(LUNCH_BAND_START);
-
-                if (overlapsLunchBand) {
-                    result.add(i);
-                }
-            }
-        }
-
-        return result;
-    }
-
-    private boolean blocksEntireLunchWindow(
-            List<CpSatScheduler.TimeSlotInfo> daySlots,
-            int startIdx,
-            int durationSlots,
-            Set<Integer> lunchSlotIndexes
-    ) {
-        if (lunchSlotIndexes.isEmpty()) {
-            return false;
-        }
-
-        Set<Integer> coveredIndexes = new HashSet<>();
-        for (int i = 0; i < durationSlots; i++) {
-            coveredIndexes.add(startIdx + i);
-        }
-
-        return coveredIndexes.containsAll(lunchSlotIndexes);
-    }
-
     private List<LocalTime> coveredSlots(
             List<CpSatScheduler.TimeSlotInfo> daySlots,
             int startIdx,
@@ -285,5 +251,115 @@ public class SchedulingCandidateGenerator {
         boolean isMorning = startTime.isBefore(LocalTime.NOON);
         return (shift == Shift.MORNING && isMorning)
                 || (shift == Shift.AFTERNOON && !isMorning);
+    }
+
+    private boolean conflictsWithFixedLessons(
+            LessonVertex vertex,
+            DayOfWeek day,
+            List<LocalTime> coveredSlots,
+            FixedOccupancy fixedOccupancy
+    ) {
+        for (LocalTime slot : coveredSlots) {
+            if (vertex.getTeacherId() != null
+                    && fixedOccupancy.teacherBusy.contains(new ResourceTimeKey(vertex.getTeacherId(), day, slot))) {
+                return true;
+            }
+
+            if (vertex.getGroupIds() != null) {
+                for (Long groupId : vertex.getGroupIds()) {
+                    if (fixedOccupancy.groupBusy.contains(new ResourceTimeKey(groupId, day, slot))) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private boolean isRoomFreeForFixedLessons(
+            Room room,
+            DayOfWeek day,
+            List<LocalTime> coveredSlots,
+            FixedOccupancy fixedOccupancy
+    ) {
+        if (room == null || room.getId() == null) {
+            return true;
+        }
+
+        for (LocalTime slot : coveredSlots) {
+            if (fixedOccupancy.roomBusy.contains(new ResourceTimeKey(room.getId(), day, slot))) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private record ResourceTimeKey(Long resourceId, DayOfWeek day, LocalTime slotTime) {}
+
+    private record FixedOccupancy(
+            Set<ResourceTimeKey> teacherBusy,
+            Set<ResourceTimeKey> groupBusy,
+            Set<ResourceTimeKey> roomBusy
+    ) {
+        static FixedOccupancy from(
+                List<Lesson> lessons,
+                Map<DayOfWeek, List<CpSatScheduler.TimeSlotInfo>> normalizedSlots
+        ) {
+            Set<ResourceTimeKey> teacherBusy = new HashSet<>();
+            Set<ResourceTimeKey> groupBusy = new HashSet<>();
+            Set<ResourceTimeKey> roomBusy = new HashSet<>();
+
+            for (Lesson lesson : lessons) {
+                for (LocalTime slot : coveredSlotsForFixedLesson(lesson, normalizedSlots)) {
+
+                    if (lesson.getTeacher() != null && lesson.getTeacher().getId() != null) {
+                        teacherBusy.add(new ResourceTimeKey(lesson.getTeacher().getId(), lesson.getDayOfWeek(), slot));
+                    }
+
+                    if (lesson.getRoom() != null && lesson.getRoom().getId() != null) {
+                        roomBusy.add(new ResourceTimeKey(lesson.getRoom().getId(), lesson.getDayOfWeek(), slot));
+                    }
+
+                    if (lesson.getGroups() != null) {
+                        for (StudyGroup group : lesson.getGroups()) {
+                            if (group.getId() != null) {
+                                groupBusy.add(new ResourceTimeKey(group.getId(), lesson.getDayOfWeek(), slot));
+                            }
+                        }
+                    }
+                }
+            }
+
+            return new FixedOccupancy(teacherBusy, groupBusy, roomBusy);
+        }
+
+        private static List<LocalTime> coveredSlotsForFixedLesson(
+                Lesson lesson,
+                Map<DayOfWeek, List<CpSatScheduler.TimeSlotInfo>> normalizedSlots
+        ) {
+            List<CpSatScheduler.TimeSlotInfo> daySlots =
+                    normalizedSlots.getOrDefault(lesson.getDayOfWeek(), Collections.emptyList());
+
+            for (int i = 0; i < daySlots.size(); i++) {
+                if (!daySlots.get(i).startTime().equals(lesson.getStartTime())) {
+                    continue;
+                }
+
+                int endExclusive = Math.min(i + lesson.getDurationHours(), daySlots.size());
+                List<LocalTime> result = new ArrayList<>();
+                for (int j = i; j < endExclusive; j++) {
+                    result.add(daySlots.get(j).startTime());
+                }
+                return result;
+            }
+
+            List<LocalTime> fallback = new ArrayList<>();
+            for (int h = 0; h < lesson.getDurationHours(); h++) {
+                fallback.add(lesson.getStartTime().plusHours(h));
+            }
+            return fallback;
+        }
     }
 }
