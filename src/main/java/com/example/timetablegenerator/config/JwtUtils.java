@@ -2,6 +2,7 @@ package com.example.timetablegenerator.config;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,15 +20,12 @@ public class JwtUtils {
     @Value("${app.jwtSecret}")
     private String jwtSecret;
 
+    @Getter
     @Value("${app.jwtExpirationMs}")
     private int jwtExpirationMs;
 
-    @Value("${app.jwtRefreshExpirationMs:604800000}")
+    @Value("${app.jwtRefreshExpirationMs}")
     private int jwtRefreshExpirationMs;
-
-    public int getJwtExpirationMs() {
-        return jwtExpirationMs;
-    }
 
     public String generateJwtToken(Authentication authentication) {
         UserDetails userPrincipal = (UserDetails) authentication.getPrincipal();
@@ -64,7 +62,7 @@ public class JwtUtils {
             logger.error("Invalid JWT token: {}", e.getMessage());
             logger.debug("Token content: {}", authToken);
         } catch (ExpiredJwtException e) {
-            logger.error("JWT token is expired: {}", e.getMessage());
+            logger.warn("JWT token is expired: {}", e.getMessage());
         } catch (UnsupportedJwtException e) {
             logger.error("JWT token is unsupported: {}", e.getMessage());
         } catch (IllegalArgumentException e) {
