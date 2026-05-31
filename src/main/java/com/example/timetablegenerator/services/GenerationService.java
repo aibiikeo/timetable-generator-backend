@@ -16,7 +16,7 @@ public interface GenerationService {
 
     GenerationResponse generateTimetable(Long timetableId, GenerationMode mode);
 
-    Map<String, Object> retryFailedAssignments(Long timetableId, Map<Long, String> manualSplittings);
+    GenerationResponse retryFailedAssignments(Long timetableId, Map<Long, String> manualSplittings);
 
     boolean manualPlaceLesson(Long timetableId, Long assignmentId,
                               String dayOfWeek, String startTime,

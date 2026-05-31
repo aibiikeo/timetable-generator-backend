@@ -58,12 +58,12 @@ public class GenerationController {
 
     @PostMapping("/timetables/{timetableId}/retry-failed")
     @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
-    public ResponseEntity<Map<String, Object>> retryFailedAssignments(
+    public ResponseEntity<GenerationResponse> retryFailedAssignments(
             @PathVariable Long timetableId,
             @RequestBody Map<Long, String> manualSplittings) {
 
         log.info("Retrying failed assignments for timetable {}: {}", timetableId, manualSplittings.size());
-        Map<String, Object> result = generationService.retryFailedAssignments(timetableId, manualSplittings);
+        GenerationResponse result = generationService.retryFailedAssignments(timetableId, manualSplittings);
         return ResponseEntity.ok(result);
     }
 

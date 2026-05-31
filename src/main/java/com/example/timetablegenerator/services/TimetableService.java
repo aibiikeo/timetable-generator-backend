@@ -21,5 +21,7 @@ public interface TimetableService {
 
     TimetableResponse publishTimetable(Long timetableId);
 
+    TimetableResponse archiveTimetable(Long timetableId);
+
     void deleteTimetable(Long timetableId, DeleteMode mode);
 }

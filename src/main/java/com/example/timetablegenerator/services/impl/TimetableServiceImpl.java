@@ -119,6 +119,18 @@ public class TimetableServiceImpl implements TimetableService {
         return timetableMapper.toResponse(updated);
     }
 
+    @Transactional
+    @Override
+    public TimetableResponse archiveTimetable(Long timetableId) {
+        Timetable timetable = timetableRepository.findById(timetableId)
+                .orElseThrow(() -> new NotFoundException("Timetable not found with id: " + timetableId));
+
+        timetable.setStatus(TimetableStatus.ARCHIVED);
+
+        Timetable updated = timetableRepository.save(timetable);
+        return timetableMapper.toResponse(updated);
+    }
+
     @Override
     @Transactional
     public void deleteTimetable(Long timetableId, DeleteMode mode) {

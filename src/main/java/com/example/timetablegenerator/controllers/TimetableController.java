@@ -66,6 +66,13 @@ public class TimetableController {
         return timetableService.publishTimetable(id);
     }
 
+    @PostMapping("/{id}/archive")
+    @ResponseStatus(HttpStatus.OK)
+    public TimetableResponse archiveTimetable(@PathVariable Long id) {
+        log.info("Archiving timetable ID: {}", id);
+        return timetableService.archiveTimetable(id);
+    }
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteTimetable(

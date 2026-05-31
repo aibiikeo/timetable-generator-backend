@@ -308,7 +308,7 @@ public class GenerationServiceImpl implements GenerationService {
 
     @Override
     @Transactional
-    public Map<String, Object> retryFailedAssignments(Long timetableId, Map<Long, String> manualSplittings) {
+    public GenerationResponse retryFailedAssignments(Long timetableId, Map<Long, String> manualSplittings) {
         for (Map.Entry<Long, String> entry : manualSplittings.entrySet()) {
             assignmentRepository.findById(entry.getKey()).ifPresent(a -> {
                 a.setHoursSplitting(entry.getValue());
@@ -316,17 +316,7 @@ public class GenerationServiceImpl implements GenerationService {
             });
         }
 
-        GenerationResponse response = generateTimetable(timetableId, GenerationMode.NEW);
-
-        return Map.of(
-                "timetableId", response.getTimetableId(),
-                "timetableName", response.getTimetableName(),
-                "totalVertices", response.getTotalVertices(),
-                "placedLessons", response.getPlacedLessonsCount(),
-                "failedVertices", response.getFailedVerticesCount(),
-                "status", response.getStatus().toString(),
-                "failedAssignments", response.getFailedAssignments()
-        );
+        return generateTimetable(timetableId, GenerationMode.APPEND);
     }
 
     @Override
