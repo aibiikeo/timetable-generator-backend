@@ -1,5 +1,6 @@
 package com.example.timetablegenerator.controllers;
 
+import com.example.timetablegenerator.domain.dto.response.PublicTimetableFilterOptionsResponse;
 import com.example.timetablegenerator.domain.dto.response.PublicTimetableScheduleResponse;
 import com.example.timetablegenerator.services.PublicTimetableService;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -18,6 +19,14 @@ import java.time.DayOfWeek;
 public class PublicTimetableController {
 
     private final PublicTimetableService publicTimetableService;
+
+    @GetMapping("/filters")
+    public PublicTimetableFilterOptionsResponse getFilterOptions(
+            @RequestParam(required = false) Long facultyId,
+            @RequestParam(required = false) Long departmentId
+    ) {
+        return publicTimetableService.getFilterOptions(facultyId, departmentId);
+    }
 
     @GetMapping
     public PublicTimetableScheduleResponse getSchedule(

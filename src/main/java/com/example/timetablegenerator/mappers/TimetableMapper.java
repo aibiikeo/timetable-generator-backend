@@ -12,12 +12,16 @@ import org.mapstruct.ReportingPolicy;
 public interface TimetableMapper {
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "faculty", ignore = true)
     @Mapping(target = "lessons", ignore = true)
     Timetable toEntity(TimetableRequest request);
 
+    @Mapping(target = "facultyId", source = "faculty.id")
+    @Mapping(target = "facultyName", source = "faculty.name")
     TimetableResponse toResponse(Timetable entity);
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "faculty", ignore = true)
     @Mapping(target = "lessons", ignore = true)
     void updateEntityFromRequest(TimetableRequest request, @MappingTarget Timetable entity);
 }

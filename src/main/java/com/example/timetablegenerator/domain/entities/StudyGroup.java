@@ -28,6 +28,10 @@ public class StudyGroup {
     @JoinColumn(name = "major_id")
     private Major major;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Degree degree;
+
     @Column(nullable = false)
     private Integer course;
 

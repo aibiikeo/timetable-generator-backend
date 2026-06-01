@@ -16,6 +16,7 @@ public class LessonVertex {
     private Long assignmentId;
 
     private Set<Long> groupIds;
+    private Long subjectId;
     private Long teacherId;
 
     private Shift shift;

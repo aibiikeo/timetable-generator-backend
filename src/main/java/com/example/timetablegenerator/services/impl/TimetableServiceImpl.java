@@ -4,12 +4,14 @@ import com.example.timetablegenerator.domain.dto.request.DeleteMode;
 import com.example.timetablegenerator.domain.dto.request.TimetableRequest;
 import com.example.timetablegenerator.domain.dto.response.TimetableResponse;
 import com.example.timetablegenerator.domain.entities.Assignment;
+import com.example.timetablegenerator.domain.entities.Faculty;
 import com.example.timetablegenerator.domain.entities.Lesson;
 import com.example.timetablegenerator.domain.entities.Timetable;
 import com.example.timetablegenerator.domain.entities.TimetableStatus;
 import com.example.timetablegenerator.exceptions.NotFoundException;
 import com.example.timetablegenerator.mappers.TimetableMapper;
 import com.example.timetablegenerator.repositories.AssignmentRepository;
+import com.example.timetablegenerator.repositories.FacultyRepository;
 import com.example.timetablegenerator.repositories.LessonRepository;
 import com.example.timetablegenerator.repositories.TimetableRepository;
 import com.example.timetablegenerator.services.TimetableService;
@@ -31,6 +33,7 @@ import java.util.Optional;
 public class TimetableServiceImpl implements TimetableService {
 
     private final AssignmentRepository assignmentRepository;
+    private final FacultyRepository facultyRepository;
     private final LessonRepository lessonRepository;
     private final TimetableRepository timetableRepository;
     private final TimetableMapper timetableMapper;
@@ -57,11 +60,16 @@ public class TimetableServiceImpl implements TimetableService {
     @Transactional
     @Override
     public TimetableResponse createTimetable(TimetableRequest request) {
+        Faculty faculty = facultyRepository.findById(request.facultyId())
+                .orElseThrow(() -> new NotFoundException("Faculty not found with id: " + request.facultyId()));
+
         Timetable timetable = timetableMapper.toEntity(request);
+        timetable.setFaculty(faculty);
 
         Integer maxVersion = timetableRepository.findMaxVersion(
                 request.academicYearStart(),
-                request.semester()
+                request.semester(),
+                request.facultyId()
         );
 
         int newVersion = (maxVersion == null) ? 0 : maxVersion + 1;
@@ -84,9 +92,12 @@ public class TimetableServiceImpl implements TimetableService {
     public TimetableResponse updateTimetable(Long timetableId, TimetableRequest request) {
         Timetable timetable = timetableRepository.findById(timetableId)
                 .orElseThrow(() -> new NotFoundException("Timetable not found with id: " + timetableId));
+        Faculty faculty = facultyRepository.findById(request.facultyId())
+                .orElseThrow(() -> new NotFoundException("Faculty not found with id: " + request.facultyId()));
 
         timetable.setAcademicYearStart(request.academicYearStart());
         timetable.setSemester(request.semester());
+        timetable.setFaculty(faculty);
         timetable.setGenerationSettings(request.generationSettings());
 
         if (request.name() != null && !request.name().isBlank()) {
@@ -105,7 +116,13 @@ public class TimetableServiceImpl implements TimetableService {
         Timetable timetable = timetableRepository.findById(timetableId)
                 .orElseThrow(() -> new NotFoundException("Timetable not found with id: " + timetableId));
 
-        List<Timetable> publishedTimetables = timetableRepository.findAllByStatus(TimetableStatus.PUBLISHED);
+        Faculty faculty = timetable.getFaculty();
+        Long facultyId = faculty != null ? faculty.getId() : null;
+        List<Timetable> publishedTimetables = facultyId != null
+                ? timetableRepository.findAllByStatusAndFacultyId(TimetableStatus.PUBLISHED, facultyId)
+                : timetableRepository.findAllByStatus(TimetableStatus.PUBLISHED).stream()
+                .filter(published -> published.getFaculty() == null)
+                .toList();
 
         for (Timetable published : publishedTimetables) {
             if (!published.getId().equals(timetableId)) {

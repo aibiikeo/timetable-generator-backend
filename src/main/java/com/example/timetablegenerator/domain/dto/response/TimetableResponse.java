@@ -13,6 +13,8 @@ public record TimetableResponse(
         Integer academicYearStart,
         Integer academicYearEnd,
         Semester semester,
+        Long facultyId,
+        String facultyName,
         Integer version,
         LocalDateTime createdAt,
         TimetableStatus status,

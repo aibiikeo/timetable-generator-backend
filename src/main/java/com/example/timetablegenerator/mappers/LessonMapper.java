@@ -3,11 +3,13 @@ package com.example.timetablegenerator.mappers;
 import com.example.timetablegenerator.domain.dto.request.LessonRequest;
 import com.example.timetablegenerator.domain.dto.response.LessonResponse;
 import com.example.timetablegenerator.domain.entities.Assignment;
+import com.example.timetablegenerator.domain.entities.Degree;
 import com.example.timetablegenerator.domain.entities.Lesson;
 import com.example.timetablegenerator.domain.entities.Room;
 import com.example.timetablegenerator.domain.entities.StudyGroup;
 import org.mapstruct.*;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
@@ -32,7 +34,7 @@ public interface LessonMapper {
 
     @Mapping(target = "majorId", source = "subject.major.id")
     @Mapping(target = "majorName", source = "subject.major.name")
-    @Mapping(target = "degree", source = "subject.major.degree")
+    @Mapping(target = "degree", source = "groups", qualifiedByName = "mapDegree")
     @Mapping(target = "departmentId", source = "subject.major.department.id")
     @Mapping(target = "departmentName", source = "subject.major.department.name")
     @Mapping(target = "facultyId", source = "subject.major.department.faculty.id")
@@ -87,6 +89,20 @@ public interface LessonMapper {
                 .map(StudyGroup::getName)
                 .sorted()
                 .toList();
+    }
+
+    @Named("mapDegree")
+    default Degree mapDegree(Set<StudyGroup> groups) {
+        if (groups == null || groups.isEmpty()) {
+            return null;
+        }
+
+        return groups.stream()
+                .map(StudyGroup::getDegree)
+                .filter(java.util.Objects::nonNull)
+                .sorted(Comparator.comparing(Enum::name))
+                .findFirst()
+                .orElse(null);
     }
 
     @Named("mapRoomName")

@@ -143,6 +143,7 @@ Content-Type: {{contentType}}
   "name": "Updated Test Timetable",
   "academicYearStart": 2025,
   "semester": "FALL",
+  "facultyId": {{createdFacultyId}},
   "generationSettings": {
     "avoidSaturday": true,
     "avoidLateLessons": false,

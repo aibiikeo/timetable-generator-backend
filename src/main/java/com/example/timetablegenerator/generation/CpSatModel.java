@@ -27,6 +27,7 @@ public class CpSatModel {
     private record ResourceDayKey(Long resourceId, DayOfWeek day) {}
     private record LunchWindowKey(Long groupId, DayOfWeek day) {}
     private record AssignmentDayKey(Long assignmentId, DayOfWeek day) {}
+    private record SubjectGroupDayKey(Long subjectId, Long groupId, DayOfWeek day) {}
     private record RoomPoolTimeKey(
             RoomType roomType,
             int minCapacity,
@@ -41,6 +42,7 @@ public class CpSatModel {
             Map<ResourceTimeKey, List<BoolVar>> groupOccupancy,
             Map<RoomPoolTimeKey, List<BoolVar>> roomPoolOccupancy,
             Map<AssignmentDayKey, List<BoolVar>> assignmentDayOccupancy,
+            Map<SubjectGroupDayKey, List<BoolVar>> subjectGroupDayOccupancy,
             List<LinearExpr> softTerms
     ) {}
 
@@ -48,8 +50,8 @@ public class CpSatModel {
     private static final int PENALTY_NON_PREFERRED_DAY = 10;
     private static final int PENALTY_AFTERNOON = 15;
     private static final int PENALTY_LATE_EVENING = 40;
-    private static final int PENALTY_SATURDAY = 200;
-    private static final int PENALTY_ASSIGNMENT_SAME_DAY_REPEAT = 90;
+    private static final int PENALTY_SATURDAY = 9_500;
+    private static final int PENALTY_ASSIGNMENT_SAME_DAY_REPEAT = 100;
 
     private static final int PENALTY_GROUP_GAP = 18;
     private static final int PENALTY_TEACHER_GAP = 12;
@@ -97,6 +99,7 @@ public class CpSatModel {
         Map<ResourceTimeKey, BoolVar> groupBusyVars = createBusyVars(build.model(), build.groupOccupancy(), "group");
 
         addSoftSameDayAssignmentPenalties(build.model(), build.assignmentDayOccupancy(), build.softTerms());
+        addHardSameDaySubjectGroupConstraints(build.model(), build.subjectGroupDayOccupancy());
         addGapAndLongDayPenalties(build.model(), teacherBusyVars, context.normalizedSlots(), build.softTerms(), PENALTY_TEACHER_GAP, PENALTY_TEACHER_STRETCHED_DAY, "teacher");
         addGapAndLongDayPenalties(build.model(), groupBusyVars, context.normalizedSlots(), build.softTerms(), PENALTY_GROUP_GAP, PENALTY_GROUP_STRETCHED_DAY, "group");
         addDailyLoadBalancePenalties(build.model(), teacherBusyVars, context.normalizedSlots(), build.softTerms(), TEACHER_DAILY_LOAD_LIMIT, PENALTY_TEACHER_DAILY_OVERLOAD, "teacher");
@@ -161,6 +164,7 @@ public class CpSatModel {
         Map<ResourceTimeKey, List<BoolVar>> groupOccupancy = new HashMap<>();
         Map<RoomPoolTimeKey, List<BoolVar>> roomPoolOccupancy = new HashMap<>();
         Map<AssignmentDayKey, List<BoolVar>> assignmentDayOccupancy = new HashMap<>();
+        Map<SubjectGroupDayKey, List<BoolVar>> subjectGroupDayOccupancy = new HashMap<>();
         List<LinearExpr> softTerms = new ArrayList<>();
 
         Set<Integer> capacityThresholds = buildCapacityThresholds(vertices);
@@ -182,6 +186,7 @@ public class CpSatModel {
                 indexGroupOccupancy(groupOccupancy, vertex, candidate, var);
                 indexRoomPoolOccupancy(roomPoolOccupancy, vertex, candidate, var, capacityThresholds);
                 indexAssignmentDayOccupancy(assignmentDayOccupancy, vertex, candidate, var);
+                indexSubjectGroupDayOccupancy(subjectGroupDayOccupancy, vertex, candidate, var);
 
                 if (vertex.getPreferredDays() != null
                         && !vertex.getPreferredDays().isEmpty()
@@ -220,6 +225,7 @@ public class CpSatModel {
                 groupOccupancy,
                 roomPoolOccupancy,
                 assignmentDayOccupancy,
+                subjectGroupDayOccupancy,
                 softTerms
         );
     }
@@ -322,6 +328,22 @@ public class CpSatModel {
         assignmentDayOccupancy.computeIfAbsent(key, _k -> new ArrayList<>()).add(var);
     }
 
+    private void indexSubjectGroupDayOccupancy(
+            Map<SubjectGroupDayKey, List<BoolVar>> subjectGroupDayOccupancy,
+            LessonVertex vertex,
+            SchedulingCandidateGenerator.TimeCandidate candidate,
+            BoolVar var
+    ) {
+        if (vertex.getSubjectId() == null || vertex.getGroupIds() == null || vertex.getGroupIds().isEmpty()) {
+            return;
+        }
+
+        for (Long groupId : vertex.getGroupIds()) {
+            SubjectGroupDayKey key = new SubjectGroupDayKey(vertex.getSubjectId(), groupId, candidate.day());
+            subjectGroupDayOccupancy.computeIfAbsent(key, _k -> new ArrayList<>()).add(var);
+        }
+    }
+
     private void addSoftSameDayAssignmentPenalties(
             CpModel model,
             Map<AssignmentDayKey, List<BoolVar>> assignmentDayOccupancy,
@@ -337,6 +359,17 @@ public class CpSatModel {
             model.addGreaterOrEqual(extra, LinearExpr.newBuilder().add(dayLoad).add(-1).build());
 
             softTerms.add(LinearExpr.term(extra, PENALTY_ASSIGNMENT_SAME_DAY_REPEAT));
+        }
+    }
+
+    private void addHardSameDaySubjectGroupConstraints(
+            CpModel model,
+            Map<SubjectGroupDayKey, List<BoolVar>> subjectGroupDayOccupancy
+    ) {
+        for (List<BoolVar> vars : subjectGroupDayOccupancy.values()) {
+            if (vars.size() > 1) {
+                model.addAtMostOne(vars.toArray(new Literal[0]));
+            }
         }
     }
 

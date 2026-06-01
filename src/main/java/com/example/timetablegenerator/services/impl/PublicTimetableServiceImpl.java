@@ -1,10 +1,12 @@
 package com.example.timetablegenerator.services.impl;
 
 import com.example.timetablegenerator.domain.dto.response.PublicFilterOptionResponse;
+import com.example.timetablegenerator.domain.dto.response.PublicTimetableFilterOptionsResponse;
 import com.example.timetablegenerator.domain.dto.response.PublicTimetableLessonResponse;
 import com.example.timetablegenerator.domain.dto.response.PublicTimetableScheduleResponse;
 import com.example.timetablegenerator.domain.dto.response.TimetableResponse;
 import com.example.timetablegenerator.domain.entities.Department;
+import com.example.timetablegenerator.domain.entities.Degree;
 import com.example.timetablegenerator.domain.entities.Faculty;
 import com.example.timetablegenerator.domain.entities.Lesson;
 import com.example.timetablegenerator.domain.entities.Major;
@@ -15,8 +17,12 @@ import com.example.timetablegenerator.domain.entities.Teacher;
 import com.example.timetablegenerator.domain.entities.Timetable;
 import com.example.timetablegenerator.domain.entities.TimetableStatus;
 import com.example.timetablegenerator.exceptions.NotFoundException;
-import com.example.timetablegenerator.mappers.TimetableMapper;
 import com.example.timetablegenerator.repositories.LessonRepository;
+import com.example.timetablegenerator.repositories.DepartmentRepository;
+import com.example.timetablegenerator.repositories.FacultyRepository;
+import com.example.timetablegenerator.repositories.RoomRepository;
+import com.example.timetablegenerator.repositories.StudyGroupRepository;
+import com.example.timetablegenerator.repositories.TeacherRepository;
 import com.example.timetablegenerator.repositories.TimetableRepository;
 import com.example.timetablegenerator.services.PublicTimetableService;
 import lombok.RequiredArgsConstructor;
@@ -40,7 +46,35 @@ public class PublicTimetableServiceImpl implements PublicTimetableService {
 
     private final TimetableRepository timetableRepository;
     private final LessonRepository lessonRepository;
-    private final TimetableMapper timetableMapper;
+    private final FacultyRepository facultyRepository;
+    private final DepartmentRepository departmentRepository;
+    private final StudyGroupRepository studyGroupRepository;
+    private final TeacherRepository teacherRepository;
+    private final RoomRepository roomRepository;
+
+    @Override
+    public PublicTimetableFilterOptionsResponse getFilterOptions(Long facultyId, Long departmentId) {
+        List<Department> departments = facultyId != null
+                ? departmentRepository.findByFacultyId(facultyId)
+                : departmentRepository.findAll();
+
+        List<StudyGroup> groups;
+        if (departmentId != null) {
+            groups = studyGroupRepository.findByMajorDepartmentId(departmentId);
+        } else if (facultyId != null) {
+            groups = studyGroupRepository.findByMajorDepartmentFacultyId(facultyId);
+        } else {
+            groups = studyGroupRepository.findAll();
+        }
+
+        return new PublicTimetableFilterOptionsResponse(
+                distinctOptions(facultyRepository.findAll().stream(), Faculty::getId, Faculty::getName),
+                distinctOptions(departments.stream(), Department::getId, Department::getName),
+                distinctOptions(groups.stream(), StudyGroup::getId, StudyGroup::getName),
+                distinctOptions(teacherRepository.findAll().stream(), Teacher::getId, Teacher::getFullName),
+                distinctOptions(roomRepository.findAll().stream(), Room::getId, Room::getName)
+        );
+    }
 
     @Override
     public PublicTimetableScheduleResponse getSchedule(
@@ -53,10 +87,15 @@ public class PublicTimetableServiceImpl implements PublicTimetableService {
             Long roomId,
             DayOfWeek dayOfWeek
     ) {
-        Timetable timetable = getPublishedTimetable();
-        TimetableResponse timetableResponse = timetableMapper.toResponse(timetable);
+        List<Timetable> publishedTimetables = getPublishedTimetables();
+        TimetableResponse timetableResponse = publishedTimetables.stream()
+                .max(Comparator.comparing(Timetable::getCreatedAt))
+                .map(this::toTimetableSummary)
+                .orElse(null);
 
-        List<PublicTimetableLessonResponse> lessons = getPublishedLessons(timetable).stream()
+        List<PublicTimetableLessonResponse> lessons = publishedTimetables.stream()
+                .flatMap(timetable -> getPublishedLessons(timetable).stream())
+                .filter(this::hasScheduleTime)
                 .filter(lesson -> matches(facultyId, faculty(lesson), Faculty::getId))
                 .filter(lesson -> matches(departmentId, department(lesson), Department::getId))
                 .filter(lesson -> matches(majorId, major(lesson), Major::getId))
@@ -66,14 +105,45 @@ public class PublicTimetableServiceImpl implements PublicTimetableService {
                 .filter(lesson -> dayOfWeek == null || dayOfWeek.equals(lesson.getDayOfWeek()))
                 .filter(lesson -> groupId == null || lesson.getGroups().stream().anyMatch(group -> groupId.equals(group.getId())))
                 .map(this::toPublicLesson)
+                .filter(Objects::nonNull)
                 .toList();
 
         return new PublicTimetableScheduleResponse(timetableResponse, lessons.size(), lessons);
     }
 
-    private Timetable getPublishedTimetable() {
-        return timetableRepository.findFirstByStatusOrderByCreatedAtDesc(TimetableStatus.PUBLISHED)
-                .orElseThrow(() -> new NotFoundException("No published timetable found"));
+    private TimetableResponse toTimetableSummary(Timetable timetable) {
+        Faculty faculty = timetable.getFaculty();
+        return new TimetableResponse(
+                timetable.getId(),
+                timetable.getName(),
+                timetable.getAcademicYearStart(),
+                timetable.getAcademicYearEnd(),
+                timetable.getSemester(),
+                faculty != null ? faculty.getId() : null,
+                faculty != null ? faculty.getName() : null,
+                timetable.getVersion(),
+                timetable.getCreatedAt(),
+                timetable.getStatus(),
+                timetable.getGenerationSettings(),
+                timetable.getConflictReport(),
+                List.of(),
+                0,
+                0
+        );
+    }
+
+    private boolean hasScheduleTime(Lesson lesson) {
+        return lesson.getDayOfWeek() != null
+                && lesson.getStartTime() != null
+                && lesson.getDurationHours() != null;
+    }
+
+    private List<Timetable> getPublishedTimetables() {
+        List<Timetable> timetables = timetableRepository.findAllByStatus(TimetableStatus.PUBLISHED);
+        if (timetables.isEmpty()) {
+            throw new NotFoundException("No published timetable found");
+        }
+        return timetables;
     }
 
     private List<Lesson> getPublishedLessons(Timetable timetable) {
@@ -82,11 +152,15 @@ public class PublicTimetableServiceImpl implements PublicTimetableService {
 
     private PublicTimetableLessonResponse toPublicLesson(Lesson lesson) {
         Subject subject = lesson.getSubject();
-        Major major = subject.getMajor();
-        Department department = major.getDepartment();
-        Faculty faculty = department.getFaculty();
+        Major major = major(lesson);
+        Department department = department(lesson);
+        Faculty faculty = faculty(lesson);
         Teacher teacher = lesson.getTeacher();
         Room room = lesson.getRoom();
+
+        if (subject == null || major == null || department == null || faculty == null) {
+            return null;
+        }
 
         return new PublicTimetableLessonResponse(
                 lesson.getId(),
@@ -102,11 +176,11 @@ public class PublicTimetableServiceImpl implements PublicTimetableService {
                 department.getName(),
                 major.getId(),
                 major.getName(),
-                major.getDegree(),
+                degree(lesson),
                 subject.getId(),
                 subject.getName(),
-                teacher.getId(),
-                teacher.getFullName(),
+                teacher != null ? teacher.getId() : null,
+                teacher != null ? teacher.getFullName() : null,
                 room != null ? room.getId() : null,
                 room != null ? room.getName() : null,
                 distinctOptions(lesson.getGroups().stream(), StudyGroup::getId, StudyGroup::getName)
@@ -118,15 +192,27 @@ public class PublicTimetableServiceImpl implements PublicTimetableService {
     }
 
     private Faculty faculty(Lesson lesson) {
-        return department(lesson).getFaculty();
+        Department department = department(lesson);
+        return department != null ? department.getFaculty() : null;
     }
 
     private Department department(Lesson lesson) {
-        return major(lesson).getDepartment();
+        Major major = major(lesson);
+        return major != null ? major.getDepartment() : null;
     }
 
     private Major major(Lesson lesson) {
-        return lesson.getSubject().getMajor();
+        Subject subject = lesson.getSubject();
+        return subject != null ? subject.getMajor() : null;
+    }
+
+    private Degree degree(Lesson lesson) {
+        return lesson.getGroups().stream()
+                .map(StudyGroup::getDegree)
+                .filter(Objects::nonNull)
+                .sorted(Comparator.comparing(Enum::name))
+                .findFirst()
+                .orElse(null);
     }
 
     private <T> boolean matches(Long expectedId, T entity, Function<T, Long> idGetter) {

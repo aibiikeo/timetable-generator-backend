@@ -3,15 +3,16 @@ package com.example.timetablegenerator.mappers;
 import com.example.timetablegenerator.domain.dto.request.AssignmentRequest;
 import com.example.timetablegenerator.domain.dto.response.AssignmentResponse;
 import com.example.timetablegenerator.domain.entities.Assignment;
+import com.example.timetablegenerator.domain.entities.Degree;
 import com.example.timetablegenerator.domain.entities.PlacementStatus;
 import com.example.timetablegenerator.domain.entities.StudyGroup;
 import com.example.timetablegenerator.domain.entities.TimeSlotExclusion;
+import com.example.timetablegenerator.utils.HoursSplittingUtils;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
 
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -46,7 +47,7 @@ public interface AssignmentMapper {
 
     @Mapping(target = "majorId", source = "subject.major.id")
     @Mapping(target = "majorName", source = "subject.major.name")
-    @Mapping(target = "degree", source = "subject.major.degree")
+    @Mapping(target = "degree", source = "groups", qualifiedByName = "mapDegree")
     @Mapping(target = "departmentId", source = "subject.major.department.id")
     @Mapping(target = "departmentName", source = "subject.major.department.name")
     @Mapping(target = "facultyId", source = "subject.major.department.faculty.id")
@@ -88,6 +89,20 @@ public interface AssignmentMapper {
                 .toList();
     }
 
+    @Named("mapDegree")
+    default Degree mapDegree(Set<StudyGroup> groups) {
+        if (groups == null || groups.isEmpty()) {
+            return null;
+        }
+
+        return groups.stream()
+                .map(StudyGroup::getDegree)
+                .filter(java.util.Objects::nonNull)
+                .sorted(Comparator.comparing(Enum::name))
+                .findFirst()
+                .orElse(null);
+    }
+
     @Named("requiredLessonsCount")
     default int requiredLessonsCount(Integer hoursPerWeek) {
         return hoursPerWeek != null ? hoursPerWeek : 0;
@@ -104,53 +119,7 @@ public interface AssignmentMapper {
             return List.of();
         }
 
-        List<List<Integer>> combinations = new ArrayList<>();
-        buildSplits(hoursPerWeek, new ArrayList<>(), combinations);
-
-        return combinations.stream()
-                .map(list -> {
-                    List<Integer> normalized = new ArrayList<>(list);
-                    normalized.sort(Comparator.reverseOrder());
-                    return normalized;
-                })
-                .distinct()
-                .sorted(
-                        Comparator
-                                .comparingInt((List<Integer> list) ->
-                                        (int) list.stream().filter(n -> n == 3).count()
-                                ).reversed()
-                                .thenComparingInt(List::size)
-                                .thenComparing(
-                                        (List<Integer> a, List<Integer> b) -> {
-                                            for (int i = 0; i < Math.min(a.size(), b.size()); i++) {
-                                                int cmp = Integer.compare(b.get(i), a.get(i));
-                                                if (cmp != 0) {
-                                                    return cmp;
-                                                }
-                                            }
-                                            return Integer.compare(a.size(), b.size());
-                                        }
-                                )
-                )
-                .map(list -> list.stream()
-                        .map(String::valueOf)
-                        .collect(java.util.stream.Collectors.joining("+")))
-                .toList();
-    }
-
-    private void buildSplits(int remaining, List<Integer> current, List<List<Integer>> result) {
-        if (remaining == 0) {
-            result.add(new ArrayList<>(current));
-            return;
-        }
-
-        for (int block = 2; block <= 4; block++) {
-            if (remaining - block >= 0) {
-                current.add(block);
-                buildSplits(remaining - block, current, result);
-                current.removeLast();
-            }
-        }
+        return HoursSplittingUtils.generateSplittingOptionsForUI(hoursPerWeek);
     }
 
     @Named("mapExcludedTimeSlots")

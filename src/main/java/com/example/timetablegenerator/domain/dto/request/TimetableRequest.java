@@ -18,6 +18,10 @@ public record TimetableRequest(
         @Schema(example = "SPRING")
         Semester semester,
 
+        @NotNull(message = "Faculty is required")
+        @Schema(example = "1")
+        Long facultyId,
+
         @NotNull(message = "Generation settings are required")
         @Schema(example = "{\"avoidSaturday\":true,\"avoidLateLessons\":true,\"maxLessonsPerDay\":3}")
         Map<String, Object> generationSettings

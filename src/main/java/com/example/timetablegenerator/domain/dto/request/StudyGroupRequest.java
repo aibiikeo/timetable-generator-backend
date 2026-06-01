@@ -1,5 +1,6 @@
 package com.example.timetablegenerator.domain.dto.request;
 
+import com.example.timetablegenerator.domain.entities.Degree;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 
@@ -12,6 +13,10 @@ public record StudyGroupRequest(
         @Positive(message = "Major ID must be positive")
         @Schema(example = "19")
         Long majorId,
+
+        @NotNull(message = "Degree is required")
+        @Schema(example = "BACHELOR")
+        Degree degree,
 
         @NotNull(message = "Course is required")
         @Min(value = 1, message = "Course must be at least 1")

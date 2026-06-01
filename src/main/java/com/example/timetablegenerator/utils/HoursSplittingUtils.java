@@ -28,14 +28,14 @@ public class HoursSplittingUtils {
     public static List<List<Integer>> generateUniqueSplittings(int totalHours, List<Integer> availableHours) {
         List<List<Integer>> result = new ArrayList<>();
         generateCombinations(totalHours, new ArrayList<>(), result, availableHours,
-                availableHours.stream().min(Integer::compare).orElse(1));
+                availableHours.stream().max(Integer::compare).orElse(1));
         return result;
     }
 
     private static void generateCombinations(int remaining, List<Integer> current,
                                              List<List<Integer>> result,
                                              List<Integer> availableHours,
-                                             int minAllowed) {
+                                             int maxAllowed) {
         if (remaining == 0) {
             result.add(new ArrayList<>(current));
             return;
@@ -43,7 +43,7 @@ public class HoursSplittingUtils {
         if (remaining < 0) return;
 
         for (int hours : availableHours) {
-            if (hours >= minAllowed && hours <= remaining) {
+            if (hours <= maxAllowed && hours <= remaining) {
                 current.add(hours);
                 generateCombinations(remaining - hours, current, result, availableHours, hours);
                 current.removeLast();

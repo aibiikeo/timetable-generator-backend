@@ -88,7 +88,6 @@ public class MajorServiceImpl implements MajorService {
         Major major = Major.builder()
                 .name(normalizedName)
                 .shortName(normalizedShortName)
-                .degree(request.degree())
                 .department(department)
                 .build();
 
@@ -120,7 +119,6 @@ public class MajorServiceImpl implements MajorService {
 
         major.setName(normalizedName);
         major.setShortName(normalizedShortName);
-        major.setDegree(request.degree());
         major.setDepartment(department);
 
         Major updated = majorRepository.save(major);
