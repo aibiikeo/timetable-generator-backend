@@ -23,10 +23,6 @@ public class Major {
 
     private String shortName;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Degree degree;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id")
     private Department department;

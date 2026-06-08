@@ -13,6 +13,8 @@ public interface UserMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "password", ignore = true)
     @Mapping(target = "role", ignore = true)
+    @Mapping(target = "quickActionsAutoEnabled", ignore = true)
+    @Mapping(target = "quickActionIds", ignore = true)
     User toEntity(UserRequest request);
 
     UserResponse toResponse(User entity);
@@ -20,5 +22,7 @@ public interface UserMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "password", ignore = true)
     @Mapping(target = "role", ignore = true)
+    @Mapping(target = "quickActionsAutoEnabled", ignore = true)
+    @Mapping(target = "quickActionIds", ignore = true)
     void updateEntityFromRequest(UserRequest request, @MappingTarget User entity);
 }

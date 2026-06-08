@@ -17,7 +17,6 @@ public interface StudyGroupMapper {
 
     @Mapping(target = "majorId", source = "major.id")
     @Mapping(target = "majorName", source = "major.name")
-    @Mapping(target = "degree", source = "major.degree")
     @Mapping(target = "departmentId", source = "major.department.id")
     @Mapping(target = "departmentName", source = "major.department.name")
     @Mapping(target = "facultyId", source = "major.department.faculty.id")

@@ -37,6 +37,10 @@ public class Timetable {
     @Column(nullable = false, length = 20)
     private Semester semester;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "faculty_id", nullable = false)
+    private Faculty faculty;
+
     @Column(nullable = false)
     @Builder.Default
     private Integer version = 0;
@@ -80,6 +84,9 @@ public class Timetable {
         if (semester == null) {
             throw new IllegalStateException("Semester is required");
         }
+        if (faculty == null) {
+            throw new IllegalStateException("Faculty is required");
+        }
         if (version == null) {
             version = 0;
         }
@@ -92,7 +99,7 @@ public class Timetable {
     }
 
     public String buildDefaultName() {
-        return "Course Schedule " + semester + " "
+        return "Course Schedule " + faculty.getName() + " " + semester + " "
                 + academicYearStart + "-" + academicYearEnd
                 + " v" + version;
     }

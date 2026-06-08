@@ -1,6 +1,5 @@
 package com.example.timetablegenerator.domain.dto.request;
 
-import com.example.timetablegenerator.domain.entities.Degree;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -16,10 +15,6 @@ public record MajorRequest(
         @Size(max = 10, message = "Short name must not exceed 10 characters")
         @Schema(example = "SE")
         String shortName,
-
-        @NotNull(message = "Degree is required")
-        @Schema(example = "BACHELOR")
-        Degree degree,
 
         @NotNull(message = "Department ID is required")
         @Positive(message = "Department ID must be positive")

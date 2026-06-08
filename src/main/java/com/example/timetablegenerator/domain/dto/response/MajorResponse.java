@@ -1,12 +1,9 @@
 package com.example.timetablegenerator.domain.dto.response;
 
-import com.example.timetablegenerator.domain.entities.Degree;
-
 public record MajorResponse(
         Long id,
         String name,
         String shortName,
-        Degree degree,
         Long departmentId,
         String departmentName,
         Long facultyId,

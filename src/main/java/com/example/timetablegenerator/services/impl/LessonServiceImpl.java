@@ -89,6 +89,7 @@ public class LessonServiceImpl implements LessonService {
                         "Assignment not found with id: " + request.assignmentId() + " in timetable: " + timetableId));
 
         Room room = resolveRoom(request.roomId());
+        validateWeeklyHoursCapacity(assignment, request.durationHours(), null);
 
         Lesson lesson = lessonMapper.toEntity(request);
         lesson.setTimetable(timetable);
@@ -114,6 +115,7 @@ public class LessonServiceImpl implements LessonService {
                         "Assignment not found with id: " + request.assignmentId() + " in timetable: " + timetableId));
 
         Room room = resolveRoom(request.roomId());
+        validateWeeklyHoursCapacity(assignment, request.durationHours(), lessonId);
 
         lessonMapper.updateEntityFromRequest(request, lesson);
         lesson.setAssignment(assignment);
@@ -148,5 +150,22 @@ public class LessonServiceImpl implements LessonService {
 
         return roomRepository.findById(roomId)
                 .orElseThrow(() -> new NotFoundException("Room not found with id: " + roomId));
+    }
+
+    private void validateWeeklyHoursCapacity(Assignment assignment, Integer durationHours, Long editingLessonId) {
+        int duration = durationHours == null ? 0 : durationHours;
+        int placedHours = lessonRepository.findByAssignmentId(assignment.getId()).stream()
+                .filter(lesson -> editingLessonId == null || !lesson.getId().equals(editingLessonId))
+                .map(Lesson::getDurationHours)
+                .filter(java.util.Objects::nonNull)
+                .mapToInt(Integer::intValue)
+                .sum();
+        int weeklyHours = assignment.getHoursPerWeek() == null ? 0 : assignment.getHoursPerWeek();
+
+        if (placedHours + duration > weeklyHours) {
+            throw new IllegalArgumentException(
+                    "Weekly hours limit exceeded. Remaining hours: " + Math.max(0, weeklyHours - placedHours)
+            );
+        }
     }
 }

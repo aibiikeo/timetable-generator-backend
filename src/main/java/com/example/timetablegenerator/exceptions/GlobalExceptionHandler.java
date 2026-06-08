@@ -132,7 +132,7 @@ public class GlobalExceptionHandler {
         log.error("Unexpected error occurred: {}", ex.getMessage(), ex);
         ErrorResponse error = new ErrorResponse(
                 "INTERNAL_SERVER_ERROR",
-                "An unexpected error occurred. Please try again later.",
+                ex.getMessage(),
                 LocalDateTime.now().toString()
         );
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);

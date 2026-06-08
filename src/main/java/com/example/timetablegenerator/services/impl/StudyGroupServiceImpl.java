@@ -84,6 +84,7 @@ public class StudyGroupServiceImpl implements StudyGroupService {
         StudyGroup group = StudyGroup.builder()
                 .name(normalizedName)
                 .major(major)
+                .degree(request.degree())
                 .course(request.course())
                 .studentCount(request.studentCount())
                 .build();
@@ -113,6 +114,7 @@ public class StudyGroupServiceImpl implements StudyGroupService {
 
         group.setName(normalizedName);
         group.setMajor(major);
+        group.setDegree(request.degree());
         group.setCourse(request.course());
         group.setStudentCount(request.studentCount());
 
