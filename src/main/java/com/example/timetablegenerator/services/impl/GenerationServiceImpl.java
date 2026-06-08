@@ -69,6 +69,8 @@ public class GenerationServiceImpl implements GenerationService {
             throw new NotFoundException("Some groups not found");
         }
 
+        validateAssignmentFaculty(timetable, subject, groups);
+
         Assignment assignment = Assignment.builder()
                 .timetable(timetable)
                 .subject(subject)
@@ -156,6 +158,7 @@ public class GenerationServiceImpl implements GenerationService {
 
         Map<Long, CpSatScheduler.ScheduledSlot> placement = schedulingResult.placed();
         Set<Long> unplacedVertexIds = schedulingResult.unplacedVertexIds();
+        Map<Long, String> unplacedReasonsByVertex = schedulingResult.unplacedReasons();
 
         log.info(
                 "Generation solver result: timetableId={}, placedVertices={}, unplacedVertices={}, elapsedMs={}",
@@ -220,9 +223,13 @@ public class GenerationServiceImpl implements GenerationService {
         }
 
         Map<Long, Long> failedVerticesByAssignment = new HashMap<>();
+        Map<Long, Set<String>> failureReasonsByAssignment = new HashMap<>();
         for (LessonVertex vertex : vertices) {
             if (unplacedVertexIds.contains(vertex.getId()) || !placement.containsKey(vertex.getId())) {
                 failedVerticesByAssignment.merge(vertex.getAssignmentId(), 1L, Long::sum);
+                failureReasonsByAssignment
+                        .computeIfAbsent(vertex.getAssignmentId(), _key -> new LinkedHashSet<>())
+                        .add(unplacedReasonsByVertex.getOrDefault(vertex.getId(), "No placement returned by scheduler"));
             }
         }
 
@@ -240,15 +247,21 @@ public class GenerationServiceImpl implements GenerationService {
             } else if (totalHoursAssigned > 0) {
                 assignment.setPlacementStatus(PlacementStatus.PARTIAL);
                 assignment.setFailureReason(
-                        "Placed %d of %d hours; %d lesson block(s) still unplaced"
-                                .formatted(totalHoursAssigned, assignment.getHoursPerWeek(), failedVerticesForAssignment)
+                        "Placed %d of %d hours; %d lesson block(s) still unplaced. %s"
+                                .formatted(
+                                        totalHoursAssigned,
+                                        assignment.getHoursPerWeek(),
+                                        failedVerticesForAssignment,
+                                        formatFailureReasons(failureReasonsByAssignment.get(assignment.getId()))
+                                )
                 );
                 assignment.setRequiresManualInput(true);
             } else {
                 assignment.setPlacementStatus(PlacementStatus.FAILED);
                 assignment.setFailureReason(
                         failedVerticesForAssignment > 0
-                                ? "Could not place any lesson blocks"
+                                ? "Could not place any lesson blocks. %s"
+                                .formatted(formatFailureReasons(failureReasonsByAssignment.get(assignment.getId())))
                                 : "No feasible placement returned"
                 );
                 assignment.setRequiresManualInput(true);
@@ -261,6 +274,14 @@ public class GenerationServiceImpl implements GenerationService {
                     || assignment.getPlacementStatus() == PlacementStatus.PARTIAL) {
                 failedAssignments.add(new UnplacedLesson(
                         assignment.getId(),
+                        assignment.getSubject() != null ? assignment.getSubject().getName() : null,
+                        assignment.getTeacher() != null ? assignment.getTeacher().getFullName() : null,
+                        assignment.getGroups() == null
+                                ? List.of()
+                                : assignment.getGroups().stream()
+                                .map(StudyGroup::getName)
+                                .sorted()
+                                .toList(),
                         assignment.getFailureReason()
                 ));
             }
@@ -403,6 +424,43 @@ public class GenerationServiceImpl implements GenerationService {
 
     private AssignmentResponse convertToResponse(Assignment assignment) {
         return assignmentMapper.toResponse(assignment);
+    }
+
+    private String formatFailureReasons(Set<String> reasons) {
+        if (reasons == null || reasons.isEmpty()) {
+            return "No detailed reason was reported.";
+        }
+
+        return reasons.stream()
+                .filter(reason -> reason != null && !reason.isBlank())
+                .limit(3)
+                .collect(Collectors.joining(" "));
+    }
+
+    private void validateAssignmentFaculty(Timetable timetable, Subject subject, Set<StudyGroup> groups) {
+        Long timetableFacultyId = timetable.getFaculty().getId();
+        Long subjectFacultyId = facultyId(subject.getMajor());
+
+        if (!timetableFacultyId.equals(subjectFacultyId)) {
+            throw new IllegalArgumentException("Subject belongs to another faculty");
+        }
+
+        boolean hasGroupFromAnotherFaculty = groups.stream()
+                .map(StudyGroup::getMajor)
+                .map(this::facultyId)
+                .anyMatch(groupFacultyId -> !timetableFacultyId.equals(groupFacultyId));
+
+        if (hasGroupFromAnotherFaculty) {
+            throw new IllegalArgumentException("All groups must belong to the timetable faculty");
+        }
+    }
+
+    private Long facultyId(Major major) {
+        if (major == null || major.getDepartment() == null || major.getDepartment().getFaculty() == null) {
+            throw new IllegalArgumentException("Faculty data is missing");
+        }
+
+        return major.getDepartment().getFaculty().getId();
     }
 
     private List<TimeSlotExclusion> mapExcludedTimeSlots(List<AssignmentRequest.TimeSlotExclusion> dtos) {

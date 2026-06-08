@@ -158,7 +158,7 @@ public class SchedulingCandidateGenerator {
             score += 15;
         }
 
-        if (day == DayOfWeek.SATURDAY) score += 40;
+        if (day == DayOfWeek.SATURDAY) score += 9_500;
         if (!startTime.isBefore(LocalTime.of(16, 0))) score += 25;
         else if (!startTime.isBefore(LocalTime.NOON)) score += 10;
 

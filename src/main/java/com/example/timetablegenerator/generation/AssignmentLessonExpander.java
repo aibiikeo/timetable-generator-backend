@@ -47,6 +47,7 @@ public class AssignmentLessonExpander {
                 vertex.setId(vertexId++);
                 vertex.setAssignmentId(assignment.getId());
                 vertex.setGroupIds(groupIds);
+                vertex.setSubjectId(assignment.getSubject() != null ? assignment.getSubject().getId() : null);
                 vertex.setTeacherId(assignment.getTeacher() != null ? assignment.getTeacher().getId() : null);
                 vertex.setShift(assignment.getShift());
                 vertex.setRoomTypeRequired(assignment.getRoomTypeRequired());
