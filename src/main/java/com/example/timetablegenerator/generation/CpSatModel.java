@@ -117,7 +117,7 @@ public class CpSatModel {
         CpSolverStatus phaseOneStatus = phaseOneSolver.solve(build.model());
 
         if (phaseOneStatus != CpSolverStatus.OPTIMAL && phaseOneStatus != CpSolverStatus.FEASIBLE) {
-            log.warn("CP-SAT phase 1 failed. status={}", phaseOneStatus);
+            log.warn("app | CP-SAT phase 1 failed. status={}", phaseOneStatus);
             Set<Long> allUnplaced = vertices.stream().map(LessonVertex::getId).collect(Collectors.toCollection(LinkedHashSet::new));
             return new SolveResult(Collections.emptyMap(), allUnplaced);
         }
@@ -139,7 +139,7 @@ public class CpSatModel {
                 ? phaseTwoSolver
                 : phaseOneSolver;
 
-        log.info("CP-SAT solve finished: phase1={}, phase2={}, objective={}",
+        log.info("app | CP-SAT solve finished: phase1={}, phase2={}, objective={}",
                 phaseOneStatus, phaseTwoStatus,
                 (finalSolver == phaseTwoSolver ? phaseTwoSolver.objectiveValue() : phaseOneSolver.objectiveValue()));
 
@@ -184,7 +184,7 @@ public class CpSatModel {
 
                 indexTeacherOccupancy(teacherOccupancy, vertex, candidate, var);
                 indexGroupOccupancy(groupOccupancy, vertex, candidate, var);
-                indexRoomPoolOccupancy(roomPoolOccupancy, vertex, candidate, var, capacityThresholds);
+                indexRoomPoolOccupancy(roomPoolOccupancy, vertex, candidate, var, capacityThresholds, allRooms);
                 indexAssignmentDayOccupancy(assignmentDayOccupancy, vertex, candidate, var);
                 indexSubjectGroupDayOccupancy(subjectGroupDayOccupancy, vertex, candidate, var);
 
@@ -209,7 +209,7 @@ public class CpSatModel {
             model.addExactlyOne(chooseOne.toArray(new Literal[0]));
         }
 
-        log.info("CP-SAT model stats: vertices={}, candidateTimes={}, timeVars={}, teacherBuckets={}, groupBuckets={}, roomPoolBuckets={}",
+        log.info("app | CP-SAT model stats: vertices={}, candidateTimes={}, timeVars={}, teacherBuckets={}, groupBuckets={}, roomPoolBuckets={}",
                 vertices.size(),
                 context.candidatesByVertex().values().stream().mapToInt(List::size).sum(),
                 timeVars.size(),
@@ -244,7 +244,6 @@ public class CpSatModel {
     private void configureSolver(CpSolver solver) {
         solver.getParameters().setMaxTimeInSeconds(30.0);
         solver.getParameters().setNumSearchWorkers(6);
-//        solver.getParameters().setRandomSeed(42);
     }
 
     private void indexTeacherOccupancy(
@@ -280,9 +279,10 @@ public class CpSatModel {
             LessonVertex vertex,
             SchedulingCandidateGenerator.TimeCandidate candidate,
             BoolVar var,
-            Set<Integer> capacityThresholds
+            Set<Integer> capacityThresholds,
+            List<Room> allRooms
     ) {
-        int requiredCapacity = normalizeRequiredCapacity(vertex.getRoomCapacityRequired());
+        int requiredCapacity = effectiveRequiredCapacity(vertex, allRooms);
 
         for (LocalTime coveredSlot : candidate.coveredSlots()) {
             for (Integer threshold : capacityThresholds) {
@@ -525,6 +525,27 @@ public class CpSatModel {
         }
 
         return count;
+    }
+
+    private int effectiveRequiredCapacity(LessonVertex vertex, List<Room> allRooms) {
+        int requiredCapacity = normalizeRequiredCapacity(vertex.getRoomCapacityRequired());
+        if (requiredCapacity == 0) {
+            return 0;
+        }
+
+        RoomType requiredType = vertex.getRoomTypeRequired();
+        for (Room room : allRooms) {
+            if (requiredType != null && requiredType != RoomType.ANY && room.getType() != requiredType) {
+                continue;
+            }
+
+            Integer roomCapacity = room.getCapacity();
+            if (roomCapacity != null && roomCapacity >= requiredCapacity) {
+                return requiredCapacity;
+            }
+        }
+
+        return 0;
     }
 
     private Set<Integer> buildCapacityThresholds(List<LessonVertex> vertices) {

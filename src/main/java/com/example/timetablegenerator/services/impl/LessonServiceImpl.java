@@ -140,7 +140,7 @@ public class LessonServiceImpl implements LessonService {
 
         lessonRepository.delete(lesson);
 
-        log.info("Deleted lesson with id={} from timetable={}", lessonId, timetableId);
+        log.info("app | Deleted lesson with id={} from timetable={}", lessonId, timetableId);
     }
 
     private Room resolveRoom(Long roomId) {

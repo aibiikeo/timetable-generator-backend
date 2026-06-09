@@ -69,7 +69,7 @@ public class LunchServiceImpl implements LunchService {
 
         lunchRepository.deleteById(id);
 
-        log.info("Deleted lunch with id={}", id);
+        log.info("app | Deleted lunch with id={}", id);
     }
 
     @Override
@@ -100,7 +100,7 @@ public class LunchServiceImpl implements LunchService {
     public void deleteByTimetable(Long timetableId) {
         lunchRepository.deleteByTimetableId(timetableId);
 
-        log.info("Deleted lunch settings for timetable={}", timetableId);
+        log.info("app | Deleted lunch settings for timetable={}", timetableId);
     }
 
     private void validateTimes(LunchRequest request) {

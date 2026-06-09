@@ -91,7 +91,7 @@ public class GenerationServiceImpl implements GenerationService {
         Assignment saved = assignmentRepository.save(assignment);
 
         List<String> splittingOptions = HoursSplittingUtils.generateSplittingOptionsForUI(request.hoursPerWeek());
-        log.debug("Available splitting options for {} hours: {}", request.hoursPerWeek(), splittingOptions);
+        log.debug("app | Available splitting options for {} hours: {}", request.hoursPerWeek(), splittingOptions);
 
         return convertToResponse(saved);
     }
@@ -115,9 +115,9 @@ public class GenerationServiceImpl implements GenerationService {
         if (mode == GenerationMode.NEW) {
             lessonRepository.deleteAll(lessonRepository.findByTimetableId(timetableId));
             lunchRepository.deleteByTimetableIdAndManualFalse(timetableId);
-            log.info("Generation mode NEW: existing lessons deleted for timetableId={}", timetableId);
+            log.info("app | Generation mode NEW: existing lessons deleted for timetableId={}", timetableId);
         } else {
-            log.info("Generation mode APPEND: existing lessons kept for timetableId={}", timetableId);
+            log.info("app | Generation mode APPEND: existing lessons kept for timetableId={}", timetableId);
         }
 
         List<Lesson> existingLessons = lessonRepository.findByTimetableId(timetableId);
@@ -136,7 +136,7 @@ public class GenerationServiceImpl implements GenerationService {
                     .toList();
             slotsByDay.put(day, slotInfos);
 
-            log.info("Generation input: day={} lessonSlots={}", day, slotInfos.size());
+            log.info("app | Generation input: day={} lessonSlots={}", day, slotInfos.size());
         }
 
         List<LessonVertex> vertices = assignmentLessonExpander.buildVertices(assignments, existingHoursByAssignment);
@@ -185,7 +185,7 @@ public class GenerationServiceImpl implements GenerationService {
 
             Assignment assignment = assignmentMap.get(vertex.getAssignmentId());
             if (assignment == null) {
-                log.error("Assignment not found for vertex assignmentId={}", vertex.getAssignmentId());
+                log.error("app | Assignment not found for vertex assignmentId={}", vertex.getAssignmentId());
                 failedCount++;
                 continue;
             }
@@ -524,7 +524,7 @@ public class GenerationServiceImpl implements GenerationService {
             lunchRepository.saveAll(lunchesToSave);
         }
 
-        log.info("Automatic lunch regenerated: timetableId={}, count={}", timetableId, lunchesToSave.size());
+        log.info("app | Automatic lunch regenerated: timetableId={}, count={}", timetableId, lunchesToSave.size());
     }
 
     private Optional<CpSatScheduler.TimeSlotInfo> findLunchSlot(

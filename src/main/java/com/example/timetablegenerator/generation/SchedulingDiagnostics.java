@@ -43,7 +43,7 @@ public class SchedulingDiagnostics {
                 .filter(v -> context.candidatesByVertex().getOrDefault(v.getId(), Collections.emptyList()).isEmpty())
                 .count();
 
-        log.info("Candidate summary: vertices={}, byDuration={}, zeroCandidateVertices={}",
+        log.info("app | Candidate summary: vertices={}, byDuration={}, zeroCandidateVertices={}",
                 vertices.size(), byDuration, zeroCandidateVertices);
 
         if (!log.isDebugEnabled()) return;
@@ -61,7 +61,7 @@ public class SchedulingDiagnostics {
             List<SchedulingCandidateGenerator.TimeCandidate> candidates =
                     context.candidatesByVertex().getOrDefault(v.getId(), Collections.emptyList());
 
-            log.debug("CONSTRAINED vertexId={}, assignmentId={}, teacherId={}, groups={}, duration={}, candidates={}",
+            log.debug("app | CONSTRAINED vertexId={}, assignmentId={}, teacherId={}, groups={}, duration={}, candidates={}",
                     v.getId(), v.getAssignmentId(), v.getTeacherId(), v.getGroupIds(), v.getDurationHours(), candidates.size());
         }
     }
@@ -71,7 +71,7 @@ public class SchedulingDiagnostics {
             SchedulingCandidateGenerator.CandidateContext context,
             CpSatModel.SolveResult solveResult
     ) {
-        log.info("After CP-SAT only: selectedTimes={}, solverUnplaced={}",
+        log.info("app | After CP-SAT only: selectedTimes={}, solverUnplaced={}",
                 solveResult.selectedTimes().size(),
                 solveResult.unplacedVertexIds().size());
 
@@ -122,8 +122,8 @@ public class SchedulingDiagnostics {
                 .flatMap(v -> v.getGroupIds() == null ? java.util.stream.Stream.empty() : v.getGroupIds().stream())
                 .collect(Collectors.groupingBy(g -> g, TreeMap::new, Collectors.counting()));
 
-        log.debug("UNPLACED_SUMMARY byTeacher={}", byTeacher);
-        log.debug("UNPLACED_SUMMARY byGroup={}", byGroup);
+        log.debug("app | UNPLACED_SUMMARY byTeacher={}", byTeacher);
+        log.debug("app | UNPLACED_SUMMARY byGroup={}", byGroup);
     }
 
     private CandidateConflictSummary analyze(

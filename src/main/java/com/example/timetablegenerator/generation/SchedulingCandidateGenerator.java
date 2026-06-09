@@ -137,8 +137,8 @@ public class SchedulingCandidateGenerator {
             }
         }
 
-        log.info("Vertices by duration={}", byDuration);
-        log.info("Zero-candidate vertices by duration={}", zeroCandidatesByDuration);
+        log.info("app | Vertices by duration={}", byDuration);
+        log.info("app | Zero-candidate vertices by duration={}", zeroCandidatesByDuration);
 
         return result;
     }
@@ -166,7 +166,7 @@ public class SchedulingCandidateGenerator {
     }
 
     public List<Room> filterRoomsByConstraints(List<Room> allRooms, LessonVertex vertex) {
-        List<Room> result = new ArrayList<>();
+        List<Room> typeCompatibleRooms = new ArrayList<>();
 
         for (Room room : allRooms) {
             if (vertex.getSpecificRoomId() != null && !Objects.equals(room.getId(), vertex.getSpecificRoomId())) {
@@ -178,17 +178,29 @@ public class SchedulingCandidateGenerator {
                 continue;
             }
 
-            if (vertex.getRoomCapacityRequired() != null
-                    && room.getCapacity() != null
-                    && room.getCapacity() < vertex.getRoomCapacityRequired()) {
-                continue;
-            }
-
-            result.add(room);
+            typeCompatibleRooms.add(room);
         }
 
-        result.sort(Comparator.comparing(Room::getId));
+        List<Room> capacityCompatibleRooms = typeCompatibleRooms.stream()
+                .filter(room -> hasRequiredCapacity(room, vertex.getRoomCapacityRequired()))
+                .toList();
+
+        List<Room> result = capacityCompatibleRooms.isEmpty()
+                ? new ArrayList<>(typeCompatibleRooms)
+                : new ArrayList<>(capacityCompatibleRooms);
+
+        result.sort(Comparator
+                .comparing((Room room) -> !hasRequiredCapacity(room, vertex.getRoomCapacityRequired()))
+                .thenComparing(Room::getId));
         return result;
+    }
+
+    private boolean hasRequiredCapacity(Room room, Integer requiredCapacity) {
+        if (requiredCapacity == null || requiredCapacity <= 0) {
+            return true;
+        }
+
+        return room.getCapacity() != null && room.getCapacity() >= requiredCapacity;
     }
 
     private Map<DayOfWeek, List<CpSatScheduler.TimeSlotInfo>> normalizeSlots(
