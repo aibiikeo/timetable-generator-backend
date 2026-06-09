@@ -26,19 +26,19 @@ public class RoomController {
 
     @GetMapping
     public List<RoomResponse> getAllRooms() {
-        log.debug("Fetching all rooms");
+        log.debug("app | Fetching all rooms");
         return roomService.getAllRooms();
     }
 
     @GetMapping("/type/{type}")
     public List<RoomResponse> getRoomsByType(@PathVariable RoomType type) {
-        log.debug("Fetching rooms by type: {}", type);
+        log.debug("app | Fetching rooms by type: {}", type);
         return roomService.getRoomsByType(type);
     }
 
     @GetMapping("/{id}")
     public RoomResponse getRoom(@PathVariable Long id) {
-        log.debug("Fetching room with ID: {}", id);
+        log.debug("app | Fetching room with ID: {}", id);
         return roomService.getRoom(id)
                 .orElseThrow(() -> new NotFoundException("Room with id " + id + " not found"));
     }
@@ -46,13 +46,13 @@ public class RoomController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public RoomResponse createRoom(@Valid @RequestBody RoomRequest request) {
-        log.info("Creating room: {} ({})", request.name(), request.type());
+        log.info("app | Creating room: {} ({})", request.name(), request.type());
         return roomService.createRoom(request);
     }
 
     @PutMapping("/{id}")
     public RoomResponse updateRoom(@PathVariable Long id, @Valid @RequestBody RoomRequest request) {
-        log.info("Updating room {}", id);
+        log.info("app | Updating room {}", id);
         return roomService.updateRoom(id, request);
     }
 
@@ -62,7 +62,7 @@ public class RoomController {
             @PathVariable Long id,
             @RequestParam(defaultValue = "SIMPLE") DeleteMode mode
     ) {
-        log.info("Deleting room with ID: {} using mode: {}", id, mode);
+        log.info("app | Deleting room with ID: {} using mode: {}", id, mode);
         roomService.deleteRoom(id, mode);
     }
 }

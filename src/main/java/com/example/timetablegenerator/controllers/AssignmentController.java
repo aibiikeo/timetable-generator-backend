@@ -25,7 +25,7 @@ public class AssignmentController {
 
     @GetMapping
     public List<AssignmentResponse> getAllAssignments(@PathVariable Long timetableId) {
-        log.debug("Fetching all assignments for timetable ID: {}", timetableId);
+        log.debug("app | Fetching all assignments for timetable ID: {}", timetableId);
         return assignmentService.getAllAssignments(timetableId);
     }
 
@@ -34,7 +34,7 @@ public class AssignmentController {
             @PathVariable Long timetableId,
             @PathVariable Long assignmentId) {
 
-        log.debug("Fetching assignment ID: {} in timetable ID: {}", assignmentId, timetableId);
+        log.debug("app | Fetching assignment ID: {} in timetable ID: {}", assignmentId, timetableId);
         return assignmentService.getAssignment(timetableId, assignmentId)
                 .orElseThrow(() -> new NotFoundException(
                         "Assignment with id " + assignmentId + " not found in timetable " + timetableId));
@@ -46,7 +46,7 @@ public class AssignmentController {
             @PathVariable Long timetableId,
             @Valid @RequestBody AssignmentRequest request) {
 
-        log.info("Creating new assignment in timetable {}: subjectId={}, teacherId={}, groups={}, {}h/week",
+        log.info("app | Creating new assignment in timetable {}: subjectId={}, teacherId={}, groups={}, {}h/week",
                 timetableId, request.subjectId(), request.teacherId(), request.groupIds(), request.hoursPerWeek());
         return assignmentService.createAssignment(timetableId, request);
     }
@@ -57,7 +57,7 @@ public class AssignmentController {
             @PathVariable Long assignmentId,
             @Valid @RequestBody AssignmentRequest request) {
 
-        log.info("Updating assignment ID: {} in timetable {}", assignmentId, timetableId);
+        log.info("app | Updating assignment ID: {} in timetable {}", assignmentId, timetableId);
         return assignmentService.updateAssignment(timetableId, assignmentId, request);
     }
 
@@ -68,7 +68,7 @@ public class AssignmentController {
             @PathVariable Long assignmentId,
             @RequestParam(defaultValue = "SIMPLE") DeleteMode mode) {
 
-        log.info("Deleting assignment ID: {} from timetable {} using mode {}", assignmentId, timetableId, mode);
+        log.info("app | Deleting assignment ID: {} from timetable {} using mode {}", assignmentId, timetableId, mode);
         assignmentService.deleteAssignment(timetableId, assignmentId, mode);
     }
 }

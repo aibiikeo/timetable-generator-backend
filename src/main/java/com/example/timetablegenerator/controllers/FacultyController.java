@@ -25,13 +25,13 @@ public class FacultyController {
 
     @GetMapping
     public List<FacultyResponse> getAllFaculties() {
-        log.info("Fetching all faculties");
+        log.info("app | Fetching all faculties");
         return facultyService.getAllFaculties();
     }
 
     @GetMapping("/{id}")
     public FacultyResponse getFaculty(@PathVariable Long id) {
-        log.info("Fetching faculty with ID: {}", id);
+        log.info("app | Fetching faculty with ID: {}", id);
         return facultyService.getFaculty(id)
                 .orElseThrow(() -> new NotFoundException("Faculty with id " + id + " not found"));
     }
@@ -39,13 +39,13 @@ public class FacultyController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public FacultyResponse createFaculty(@Valid @RequestBody FacultyRequest request) {
-        log.info("Creating new faculty: {} ", request.name());
+        log.info("app | Creating new faculty: {} ", request.name());
         return facultyService.createFaculty(request);
     }
 
     @PutMapping("/{id}")
     public FacultyResponse updateFaculty(@PathVariable Long id, @Valid @RequestBody FacultyRequest request) {
-        log.info("Updating faculty ID: {} -> new name: {}", id, request.name());
+        log.info("app | Updating faculty ID: {} -> new name: {}", id, request.name());
         return facultyService.updateFaculty(id, request);
     }
 
@@ -55,7 +55,7 @@ public class FacultyController {
             @PathVariable Long id,
             @RequestParam(defaultValue = "SIMPLE") DeleteMode mode) {
 
-        log.info("Deleting faculty with ID: {} using mode: {}", id, mode);
+        log.info("app | Deleting faculty with ID: {} using mode: {}", id, mode);
         facultyService.deleteFaculty(id, mode);
     }
 }

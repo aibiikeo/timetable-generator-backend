@@ -25,25 +25,25 @@ public class MajorController {
 
     @GetMapping
     public List<MajorResponse> getAllMajors() {
-        log.debug("Fetching all majors");
+        log.debug("app | Fetching all majors");
         return majorService.getAllMajors();
     }
 
     @GetMapping("/department/{departmentId}")
     public List<MajorResponse> getMajorsByDepartment(@PathVariable Long departmentId) {
-        log.debug("Fetching majors for department ID: {}", departmentId);
+        log.debug("app | Fetching majors for department ID: {}", departmentId);
         return majorService.getMajorsByDepartment(departmentId);
     }
 
     @GetMapping("/faculty/{facultyId}")
     public List<MajorResponse> getMajorsByFaculty(@PathVariable Long facultyId) {
-        log.debug("Fetching majors for faculty ID: {}", facultyId);
+        log.debug("app | Fetching majors for faculty ID: {}", facultyId);
         return majorService.getMajorsByFaculty(facultyId);
     }
 
     @GetMapping("/{id}")
     public MajorResponse getMajor(@PathVariable Long id) {
-        log.debug("Fetching major with ID: {}", id);
+        log.debug("app | Fetching major with ID: {}", id);
         return majorService.getMajor(id)
                 .orElseThrow(() -> new NotFoundException("Major with id " + id + " not found"));
     }
@@ -51,7 +51,7 @@ public class MajorController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public MajorResponse createMajor(@Valid @RequestBody MajorRequest request) {
-        log.info("Creating major '{}' in department {}", request.name(), request.departmentId());
+        log.info("app | Creating major '{}' in department {}", request.name(), request.departmentId());
         return majorService.createMajor(request);
     }
 
@@ -60,7 +60,7 @@ public class MajorController {
             @PathVariable Long id,
             @Valid @RequestBody MajorRequest request
     ) {
-        log.info("Updating major {} -> '{}'", id, request.name());
+        log.info("app | Updating major {} -> '{}'", id, request.name());
         return majorService.updateMajor(id, request);
     }
 
@@ -70,7 +70,7 @@ public class MajorController {
             @PathVariable Long id,
             @RequestParam(defaultValue = "SIMPLE") DeleteMode mode
     ) {
-        log.info("Deleting major with ID: {} using mode: {}", id, mode);
+        log.info("app | Deleting major with ID: {} using mode: {}", id, mode);
         majorService.deleteMajor(id, mode);
     }
 }

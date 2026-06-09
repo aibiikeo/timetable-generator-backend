@@ -25,31 +25,31 @@ public class StudyGroupController {
 
     @GetMapping
     public List<StudyGroupResponse> getAllGroups() {
-        log.debug("Fetching all study groups");
+        log.debug("app | Fetching all study groups");
         return studyGroupService.getAllGroups();
     }
 
     @GetMapping("/faculty/{facultyId}")
     public List<StudyGroupResponse> getGroupsByFaculty(@PathVariable Long facultyId) {
-        log.debug("Fetching study groups for faculty ID: {}", facultyId);
+        log.debug("app | Fetching study groups for faculty ID: {}", facultyId);
         return studyGroupService.getGroupsByFaculty(facultyId);
     }
 
     @GetMapping("/department/{departmentId}")
     public List<StudyGroupResponse> getGroupsByDepartment(@PathVariable Long departmentId) {
-        log.debug("Fetching study groups for department ID: {}", departmentId);
+        log.debug("app | Fetching study groups for department ID: {}", departmentId);
         return studyGroupService.getGroupsByDepartment(departmentId);
     }
 
     @GetMapping("/major/{majorId}")
     public List<StudyGroupResponse> getGroupsByMajor(@PathVariable Long majorId) {
-        log.debug("Fetching study groups for major ID: {}", majorId);
+        log.debug("app | Fetching study groups for major ID: {}", majorId);
         return studyGroupService.getGroupsByMajor(majorId);
     }
 
     @GetMapping("/{id}")
     public StudyGroupResponse getGroup(@PathVariable Long id) {
-        log.debug("Fetching study group with ID: {}", id);
+        log.debug("app | Fetching study group with ID: {}", id);
         return studyGroupService.getGroup(id)
                 .orElseThrow(() -> new NotFoundException("Study group with id " + id + " not found"));
     }
@@ -57,7 +57,7 @@ public class StudyGroupController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public StudyGroupResponse createGroup(@Valid @RequestBody StudyGroupRequest request) {
-        log.info("Creating new study group: {} (majorId: {}, course: {}, studentCount: {})",
+        log.info("app | Creating new study group: {} (majorId: {}, course: {}, studentCount: {})",
                 request.name(), request.majorId(), request.course(), request.studentCount());
         return studyGroupService.createGroup(request);
     }
@@ -67,7 +67,7 @@ public class StudyGroupController {
             @PathVariable Long id,
             @Valid @RequestBody StudyGroupRequest request
     ) {
-        log.info("Updating study group ID: {} -> new name: {}, majorId: {}",
+        log.info("app | Updating study group ID: {} -> new name: {}, majorId: {}",
                 id, request.name(), request.majorId());
         return studyGroupService.updateGroup(id, request);
     }
@@ -78,7 +78,7 @@ public class StudyGroupController {
             @PathVariable Long id,
             @RequestParam(defaultValue = "SIMPLE") DeleteMode mode
     ) {
-        log.info("Deleting study group with ID: {} using mode: {}", id, mode);
+        log.info("app | Deleting study group with ID: {} using mode: {}", id, mode);
         studyGroupService.deleteGroup(id, mode);
     }
 }

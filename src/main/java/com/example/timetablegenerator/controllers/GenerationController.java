@@ -32,7 +32,7 @@ public class GenerationController {
             @PathVariable Long timetableId,
             @Valid @RequestBody AssignmentRequest request) {
 
-        log.info("Creating assignment for timetable {}: subject={}, hours={}",
+        log.info("app | Creating assignment for timetable {}: subject={}, hours={}",
                 timetableId, request.subjectId(), request.hoursPerWeek());
 
         AssignmentResponse response = generationService.createAssignmentWithOptions(timetableId, request);
@@ -41,7 +41,7 @@ public class GenerationController {
 
     @GetMapping("/splitting-options")
     public ResponseEntity<List<String>> getSplittingOptions(@RequestParam int hoursPerWeek) {
-        log.debug("Getting splitting options for {} hours", hoursPerWeek);
+        log.debug("app | Getting splitting options for {} hours", hoursPerWeek);
         List<String> options = generationService.generateSplittingOptions(hoursPerWeek);
         return ResponseEntity.ok(options);
     }
@@ -51,7 +51,7 @@ public class GenerationController {
     public ResponseEntity<GenerationResponse> generateTimetable(
             @PathVariable Long timetableId,
             @RequestParam(required = false, defaultValue = "NEW") GenerationMode mode) {
-        log.info("Generating timetable {} with mode {}", timetableId, mode);
+        log.info("app | Generating timetable {} with mode {}", timetableId, mode);
         GenerationResponse result = generationService.generateTimetable(timetableId, mode);
         return ResponseEntity.ok(result);
     }
@@ -62,7 +62,7 @@ public class GenerationController {
             @PathVariable Long timetableId,
             @RequestBody Map<Long, String> manualSplittings) {
 
-        log.info("Retrying failed assignments for timetable {}: {}", timetableId, manualSplittings.size());
+        log.info("app | Retrying failed assignments for timetable {}: {}", timetableId, manualSplittings.size());
         GenerationResponse result = generationService.retryFailedAssignments(timetableId, manualSplittings);
         return ResponseEntity.ok(result);
     }
@@ -77,7 +77,7 @@ public class GenerationController {
             @RequestParam Integer durationHours,
             @RequestParam Long roomId) {
 
-        log.info("Manual placement for assignment {}: {} {} {}h room {}",
+        log.info("app | Manual placement for assignment {}: {} {} {}h room {}",
                 assignmentId, dayOfWeek, startTime, durationHours, roomId);
 
         boolean success = generationService.manualPlaceLesson(

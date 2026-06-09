@@ -25,7 +25,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFoundException(NotFoundException ex) {
-        log.warn("Resource not found: {}", ex.getMessage());
+        log.warn("app | Resource not found: {}", ex.getMessage());
 
         ErrorResponse error = new ErrorResponse(
                 "NOT_FOUND",
@@ -38,7 +38,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ErrorResponse> handleIllegalStateException(IllegalStateException ex) {
-        log.warn("Illegal state operation: {}", ex.getMessage());
+        log.warn("app | Illegal state operation: {}", ex.getMessage());
         ErrorResponse error = new ErrorResponse(
                 "CONFLICT",
                 ex.getMessage(),
@@ -49,7 +49,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
-        log.warn("Invalid argument: {}", ex.getMessage());
+        log.warn("app | Invalid argument: {}", ex.getMessage());
         ErrorResponse error = new ErrorResponse(
                 "BAD_REQUEST",
                 ex.getMessage(),
@@ -60,7 +60,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
-        log.warn("Validation failed: {}", ex.getMessage());
+        log.warn("app | Validation failed: {}", ex.getMessage());
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach(error -> {
             String fieldName = ((FieldError) error).getField();
@@ -72,7 +72,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<Map<String, String>> handleConstraintViolationException(ConstraintViolationException ex) {
-        log.warn("Constraint violation: {}", ex.getMessage());
+        log.warn("app | Constraint violation: {}", ex.getMessage());
         Map<String, String> errors = new HashMap<>();
         ex.getConstraintViolations().forEach(violation -> {
             String fieldName = violation.getPropertyPath().toString();
@@ -84,7 +84,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
-        log.warn("Malformed JSON request: {}", ex.getMessage());
+        log.warn("app | Malformed JSON request: {}", ex.getMessage());
         ErrorResponse error = new ErrorResponse(
                 "BAD_REQUEST",
                 "Invalid request body. Please check the JSON format.",
@@ -95,7 +95,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ErrorResponse> handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex) {
-        log.warn("Type mismatch for parameter {}: {}", ex.getName(), ex.getMessage());
+        log.warn("app | Type mismatch for parameter {}: {}", ex.getName(), ex.getMessage());
         ErrorResponse error = new ErrorResponse(
                 "BAD_REQUEST",
                 String.format("Invalid value '%s' for parameter '%s'. Expected type: %s",
@@ -107,7 +107,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ErrorResponse> handleMissingParams(MissingServletRequestParameterException ex) {
-        log.warn("Missing required parameter: {}", ex.getMessage());
+        log.warn("app | Missing required parameter: {}", ex.getMessage());
         ErrorResponse error = new ErrorResponse(
                 "BAD_REQUEST",
                 String.format("Missing required parameter: %s", ex.getParameterName()),
@@ -118,7 +118,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException ex) {
-        log.warn("Access denied: {}", ex.getMessage());
+        log.warn("app | Access denied: {}", ex.getMessage());
         ErrorResponse error = new ErrorResponse(
                 "FORBIDDEN",
                 "You don't have permission to access this resource",
@@ -129,10 +129,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
-        log.error("Unexpected error occurred: {}", ex.getMessage(), ex);
+        log.error("app | Unexpected error occurred", ex);
         ErrorResponse error = new ErrorResponse(
                 "INTERNAL_SERVER_ERROR",
-                ex.getMessage(),
+                "Something went wrong. Please try again later.",
                 LocalDateTime.now().toString()
         );
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -140,7 +140,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
-        log.warn("Data integrity violation: {}", ex.getMessage());
+        log.warn("app | Data integrity violation: {}", ex.getMessage());
 
         ErrorResponse error = new ErrorResponse(
                 "DATA_INTEGRITY_VIOLATION",

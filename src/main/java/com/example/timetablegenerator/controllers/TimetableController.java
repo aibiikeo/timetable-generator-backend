@@ -25,20 +25,20 @@ public class TimetableController {
 
     @GetMapping
     public List<TimetableResponse> getAllTimetables() {
-        log.debug("Fetching all timetable versions");
+        log.debug("app | Fetching all timetable versions");
         return timetableService.getAllTimetables();
     }
 
     @GetMapping("/published")
     public TimetableResponse getPublishedTimetable() {
-        log.debug("Fetching published timetable");
+        log.debug("app | Fetching published timetable");
         return timetableService.getPublishedTimetable()
                 .orElseThrow(() -> new NotFoundException("No published timetable found"));
     }
 
     @GetMapping("/{id}")
     public TimetableResponse getTimetable(@PathVariable Long id) {
-        log.debug("Fetching timetable ID: {}", id);
+        log.debug("app | Fetching timetable ID: {}", id);
         return timetableService.getTimetable(id)
                 .orElseThrow(() -> new NotFoundException("Timetable with id " + id + " not found"));
     }
@@ -46,7 +46,7 @@ public class TimetableController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public TimetableResponse createTimetable(@Valid @RequestBody TimetableRequest request) {
-        log.info("Creating new timetable for {} {}", request.semester(), request.academicYearStart());
+        log.info("app | Creating new timetable for {} {}", request.semester(), request.academicYearStart());
         return timetableService.createTimetable(request);
     }
 
@@ -55,21 +55,21 @@ public class TimetableController {
             @PathVariable Long id,
             @Valid @RequestBody TimetableRequest request
     ) {
-        log.info("Updating timetable ID: {} for {} {}", id, request.semester(), request.academicYearStart());
+        log.info("app | Updating timetable ID: {} for {} {}", id, request.semester(), request.academicYearStart());
         return timetableService.updateTimetable(id, request);
     }
 
     @PostMapping("/{id}/publish")
     @ResponseStatus(HttpStatus.OK)
     public TimetableResponse publishTimetable(@PathVariable Long id) {
-        log.warn("Publishing timetable ID: {}", id);
+        log.warn("app | Publishing timetable ID: {}", id);
         return timetableService.publishTimetable(id);
     }
 
     @PostMapping("/{id}/archive")
     @ResponseStatus(HttpStatus.OK)
     public TimetableResponse archiveTimetable(@PathVariable Long id) {
-        log.info("Archiving timetable ID: {}", id);
+        log.info("app | Archiving timetable ID: {}", id);
         return timetableService.archiveTimetable(id);
     }
 
@@ -79,7 +79,7 @@ public class TimetableController {
             @PathVariable Long id,
             @RequestParam(defaultValue = "SIMPLE") DeleteMode mode
     ) {
-        log.info("Deleting timetable with ID: {} using mode: {}", id, mode);
+        log.info("app | Deleting timetable with ID: {} using mode: {}", id, mode);
         timetableService.deleteTimetable(id, mode);
     }
 }

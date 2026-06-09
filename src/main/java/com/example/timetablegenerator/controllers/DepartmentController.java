@@ -25,19 +25,19 @@ public class DepartmentController {
 
     @GetMapping
     public List<DepartmentResponse> getAllDepartments() {
-        log.debug("Fetching all departments");
+        log.debug("app | Fetching all departments");
         return departmentService.getAllDepartments();
     }
 
     @GetMapping("/faculty/{facultyId}")
     public List<DepartmentResponse> getDepartmentsByFaculty(@PathVariable Long facultyId) {
-        log.debug("Fetching departments for faculty ID: {}", facultyId);
+        log.debug("app | Fetching departments for faculty ID: {}", facultyId);
         return departmentService.getDepartmentsByFaculty(facultyId);
     }
 
     @GetMapping("/{id}")
     public DepartmentResponse getDepartment(@PathVariable Long id) {
-        log.debug("Fetching department with ID: {}", id);
+        log.debug("app | Fetching department with ID: {}", id);
         return departmentService.getDepartment(id)
                 .orElseThrow(() -> new NotFoundException("Department with id " + id + " not found"));
     }
@@ -45,7 +45,7 @@ public class DepartmentController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public DepartmentResponse createDepartment(@Valid @RequestBody DepartmentRequest request) {
-        log.info("Creating department '{}' for faculty {}", request.name(), request.facultyId());
+        log.info("app | Creating department '{}' for faculty {}", request.name(), request.facultyId());
         return departmentService.createDepartment(request);
     }
 
@@ -54,7 +54,7 @@ public class DepartmentController {
             @PathVariable Long id,
             @Valid @RequestBody DepartmentRequest request
     ) {
-        log.info("Updating department {} -> '{}'", id, request.name());
+        log.info("app | Updating department {} -> '{}'", id, request.name());
         return departmentService.updateDepartment(id, request);
     }
 
@@ -64,7 +64,7 @@ public class DepartmentController {
             @PathVariable Long id,
             @RequestParam(defaultValue = "SIMPLE") DeleteMode mode
     ) {
-        log.info("Deleting department with ID: {} using mode: {}", id, mode);
+        log.info("app | Deleting department with ID: {} using mode: {}", id, mode);
         departmentService.deleteDepartment(id, mode);
     }
 }

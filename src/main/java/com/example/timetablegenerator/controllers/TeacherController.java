@@ -27,13 +27,13 @@ public class TeacherController {
 
     @GetMapping
     public List<TeacherResponse> getAllTeachers() {
-        log.debug("Fetching all teachers");
+        log.debug("app | Fetching all teachers");
         return teacherService.getAllTeachers();
     }
 
     @GetMapping("/{id}")
     public TeacherResponse getTeacher(@PathVariable Long id) {
-        log.debug("Fetching teacher with ID: {}", id);
+        log.debug("app | Fetching teacher with ID: {}", id);
         return teacherService.getTeacher(id)
                 .orElseThrow(() -> new NotFoundException("Teacher with id " + id + " not found"));
     }
@@ -41,7 +41,7 @@ public class TeacherController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public TeacherResponse createTeacher(@Valid @RequestBody TeacherRequest request) {
-        log.info("Creating new teacher: {}", request.fullName());
+        log.info("app | Creating new teacher: {}", request.fullName());
         return teacherService.createTeacher(request);
     }
 
@@ -50,7 +50,7 @@ public class TeacherController {
             @PathVariable Long id,
             @Valid @RequestBody TeacherRequest request) {
 
-        log.info("Updating teacher ID: {} -> new name: {}", id, request.fullName());
+        log.info("app | Updating teacher ID: {} -> new name: {}", id, request.fullName());
         return teacherService.updateTeacher(id, request);
     }
 
@@ -64,7 +64,7 @@ public class TeacherController {
     public void deleteTeacher(
             @PathVariable Long id,
             @RequestParam(defaultValue = "SIMPLE") DeleteMode mode) {
-        log.info("Deleting teacher with ID: {} using mode: {}", id, mode);
+        log.info("app | Deleting teacher with ID: {} using mode: {}", id, mode);
         teacherService.deleteTeacher(id, mode);
     }
 }

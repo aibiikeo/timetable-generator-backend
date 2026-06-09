@@ -25,19 +25,19 @@ public class TimeSlotController {
 
     @GetMapping
     public List<TimeSlotResponse> getAllTimeSlots() {
-        log.debug("Fetching all time slots");
+        log.debug("app | Fetching all time slots");
         return timeSlotService.getAllTimeSlots();
     }
 
     @GetMapping("/day/{dayOfWeek}")
     public List<TimeSlotResponse> getTimeSlotsByDay(@PathVariable DayOfWeek dayOfWeek) {
-        log.debug("Fetching time slots for day: {}", dayOfWeek);
+        log.debug("app | Fetching time slots for day: {}", dayOfWeek);
         return timeSlotService.getTimeSlotsByDay(dayOfWeek);
     }
 
     @GetMapping("/{id}")
     public TimeSlotResponse getTimeSlot(@PathVariable Long id) {
-        log.debug("Fetching time slot with ID: {}", id);
+        log.debug("app | Fetching time slot with ID: {}", id);
         return timeSlotService.getTimeSlot(id)
                 .orElseThrow(() -> new NotFoundException("TimeSlot with id " + id + " not found"));
     }
@@ -45,7 +45,7 @@ public class TimeSlotController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public TimeSlotResponse createTimeSlot(@Valid @RequestBody TimeSlotRequest request) {
-        log.info("Creating time slot: day={}, order={}, start={}, end={}",
+        log.info("app | Creating time slot: day={}, order={}, start={}, end={}",
                 request.dayOfWeek(), request.order(), request.startTime(), request.endTime());
 
         return timeSlotService.createTimeSlot(request);
@@ -56,14 +56,14 @@ public class TimeSlotController {
             @PathVariable Long id,
             @Valid @RequestBody TimeSlotRequest request
     ) {
-        log.info("Updating time slot ID: {}", id);
+        log.info("app | Updating time slot ID: {}", id);
         return timeSlotService.updateTimeSlot(id, request);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteTimeSlot(@PathVariable Long id) {
-        log.info("Deleting time slot with ID: {}", id);
+        log.info("app | Deleting time slot with ID: {}", id);
         timeSlotService.deleteTimeSlot(id);
     }
 }

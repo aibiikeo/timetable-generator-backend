@@ -24,13 +24,13 @@ public class UserController {
 
     @GetMapping
     public List<UserResponse> getAllUsers() {
-        log.debug("Fetching all users");
+        log.debug("app | Fetching all users");
         return userService.getAllUsers();
     }
 
     @GetMapping("/{id}")
     public UserResponse getUser(@PathVariable Long id) {
-        log.debug("Fetching user with ID: {}", id);
+        log.debug("app | Fetching user with ID: {}", id);
         return userService.getUser(id)
                 .orElseThrow(() -> new NotFoundException("User with id " + id + " not found"));
     }
@@ -38,20 +38,20 @@ public class UserController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public UserResponse createUser(@Valid @RequestBody UserRequest request) {
-        log.info("Creating new user with email: {}", request.email());
+        log.info("app | Creating new user with email: {}", request.email());
         return userService.createUser(request);
     }
 
     @PutMapping("/{id}")
     public UserResponse updateUser(@PathVariable Long id, @Valid @RequestBody UserRequest request) {
-        log.info("Updating user ID: {}", id);
+        log.info("app | Updating user ID: {}", id);
         return userService.updateUser(id, request);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteUser(@PathVariable Long id) {
-        log.info("Deleting user ID: {}", id);
+        log.info("app | Deleting user ID: {}", id);
         userService.deleteUser(id);
     }
 
@@ -59,6 +59,6 @@ public class UserController {
     public Long getUserIdByEmail(@RequestParam String email) {
         return userService.getUserByEmail(email)
                 .map(UserResponse::id)
-                .orElseThrow(() -> new NotFoundException("User with email " + email + " not found"));
+                .orElseThrow(() -> new NotFoundException("User not found"));
     }
 }

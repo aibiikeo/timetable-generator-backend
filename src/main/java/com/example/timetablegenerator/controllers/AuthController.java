@@ -36,11 +36,11 @@ public class AuthController {
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
         try {
             AuthResponse response = authService.authenticateUser(request);
-            log.info("User {} logged in successfully", request.email());
+            log.info("app | User {} logged in successfully", request.email());
             return ResponseEntity.ok(response);
 
         } catch (BadCredentialsException e) {
-            log.warn("Invalid credentials for user: {}", request.email());
+            log.warn("app | Invalid credentials for user: {}", request.email());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse(
                             "AUTH_001",
@@ -49,7 +49,7 @@ public class AuthController {
                     ));
 
         } catch (DisabledException e) {
-            log.warn("Disabled account attempted login: {}", request.email());
+            log.warn("app | Disabled account attempted login: {}", request.email());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse(
                             "AUTH_002",
@@ -58,7 +58,7 @@ public class AuthController {
                     ));
 
         } catch (LockedException e) {
-            log.warn("Locked account attempted login: {}", request.email());
+            log.warn("app | Locked account attempted login: {}", request.email());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse(
                             "AUTH_003",
@@ -67,7 +67,7 @@ public class AuthController {
                     ));
 
         } catch (Exception e) {
-            log.error("Unexpected error during login for user: {}", request.email(), e);
+            log.error("app | Unexpected error during login for user: {}", request.email(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ErrorResponse(
                             "AUTH_999",
