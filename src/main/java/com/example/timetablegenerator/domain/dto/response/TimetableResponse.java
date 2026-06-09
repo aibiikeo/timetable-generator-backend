@@ -18,7 +18,6 @@ public record TimetableResponse(
         Integer version,
         LocalDateTime createdAt,
         TimetableStatus status,
-        Map<String, Object> generationSettings,
         Map<String, Object> conflictReport,
         List<AssignmentResponse> assignments,
         int totalLessons,

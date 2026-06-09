@@ -888,9 +888,9 @@ INSERT INTO subject_groups (subject_id, group_id) VALUES
     ((SELECT id FROM subjects WHERE name = 'Variable Part (Applied statistics)' LIMIT 1), (SELECT id FROM study_groups WHERE name = 'MATDAIS-24' LIMIT 1)),
     ((SELECT id FROM subjects WHERE name = 'Variable Part (Applied statistics)' LIMIT 1), (SELECT id FROM study_groups WHERE name = 'MATMIE-24' LIMIT 1));
 -- TIMETABLES
-INSERT INTO timetables (name, academic_year_start, academic_year_end, semester, faculty_id, version, created_at, status, generation_settings, conflict_report) VALUES
-    ('Course Schedule FALL 2025-2026 v0', 2025, 2026, 'FALL', (SELECT id FROM faculties WHERE name = 'Faculty of Engineering and Informatics' LIMIT 1), 0, NOW(), 'DRAFT', NULL, NULL),
-    ('Course Schedule SPRING 2025-2026 v0', 2025, 2026, 'SPRING', (SELECT id FROM faculties WHERE name = 'Faculty of Engineering and Informatics' LIMIT 1), 0, NOW(), 'DRAFT', NULL, NULL);
+INSERT INTO timetables (name, academic_year_start, academic_year_end, semester, faculty_id, version, created_at, status, conflict_report) VALUES
+    ('Course Schedule FALL 2025-2026 v0', 2025, 2026, 'FALL', (SELECT id FROM faculties WHERE name = 'Faculty of Engineering and Informatics' LIMIT 1), 0, NOW(), 'DRAFT', NULL),
+    ('Course Schedule SPRING 2025-2026 v0', 2025, 2026, 'SPRING', (SELECT id FROM faculties WHERE name = 'Faculty of Engineering and Informatics' LIMIT 1), 0, NOW(), 'DRAFT', NULL);
 
 -- TIME SLOTS
 INSERT INTO time_slots (day_of_week, slot_order, start_time, end_time, description) VALUES

@@ -4,8 +4,6 @@ import com.example.timetablegenerator.domain.entities.Semester;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 
-import java.util.Map;
-
 public record TimetableRequest(
         @Schema(example = "Spring 2026 SE timetable")
         String name,
@@ -20,10 +18,6 @@ public record TimetableRequest(
 
         @NotNull(message = "Faculty is required")
         @Schema(example = "1")
-        Long facultyId,
-
-        @NotNull(message = "Generation settings are required")
-        @Schema(example = "{\"avoidSaturday\":true,\"avoidLateLessons\":true,\"maxLessonsPerDay\":3}")
-        Map<String, Object> generationSettings
+        Long facultyId
 ) {
 }

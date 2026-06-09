@@ -98,7 +98,6 @@ public class TimetableServiceImpl implements TimetableService {
         timetable.setAcademicYearStart(request.academicYearStart());
         timetable.setSemester(request.semester());
         timetable.setFaculty(faculty);
-        timetable.setGenerationSettings(request.generationSettings());
 
         if (request.name() != null && !request.name().isBlank()) {
             timetable.setName(request.name().trim());
@@ -176,6 +175,6 @@ public class TimetableServiceImpl implements TimetableService {
 
         timetableRepository.delete(timetable);
 
-        log.info("Deleted timetable with id={} using mode={}", timetableId, mode);
+        log.info("app | Deleted timetable with id={} using mode={}", timetableId, mode);
     }
 }
