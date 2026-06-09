@@ -93,7 +93,7 @@ public class TimeSlotServiceImpl implements TimeSlotService {
 
         timeSlotRepository.deleteById(id);
 
-        log.info("Deleted time slot with id={}", id);
+        log.info("app | Deleted time slot with id={}", id);
     }
 
     private void validateTimeRange(TimeSlotRequest request) {

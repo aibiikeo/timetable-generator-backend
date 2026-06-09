@@ -59,7 +59,7 @@ public class FacultyServiceImpl implements FacultyService {
                 .build();
 
         Faculty saved = facultyRepository.save(faculty);
-        log.info("Created faculty with id={}", saved.getId());
+        log.info("app | Created faculty with id={}", saved.getId());
 
         return facultyMapper.toResponse(saved);
     }
@@ -81,7 +81,7 @@ public class FacultyServiceImpl implements FacultyService {
         faculty.setName(normalizedName);
 
         Faculty updated = facultyRepository.save(faculty);
-        log.info("Updated faculty with id={}", updated.getId());
+        log.info("app | Updated faculty with id={}", updated.getId());
 
         return facultyMapper.toResponse(updated);
     }
@@ -119,7 +119,7 @@ public class FacultyServiceImpl implements FacultyService {
         }
 
         facultyRepository.delete(faculty);
-        log.info("Deleted faculty with id={} using mode={}", facultyId, mode);
+        log.info("app | Deleted faculty with id={} using mode={}", facultyId, mode);
     }
 
     private String normalize(String value) {

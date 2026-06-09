@@ -32,8 +32,8 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void createFirstSuperAdmin(SuperAdminRequest request) {
         if (userRepository.existsByEmail(request.email())) {
-            log.warn("Attempt to create super admin with existing email: {}", request.email());
-            throw new IllegalArgumentException("Email is already in use: " + request.email());
+            log.warn("app | Attempt to create super admin with existing email: {}", request.email());
+            throw new IllegalArgumentException("Email is already in use");
         }
 
         User superAdmin = User.builder()
@@ -43,7 +43,7 @@ public class UserServiceImpl implements UserService {
                 .build();
 
         userRepository.save(superAdmin);
-        log.info("Super admin created successfully: {}", request.email());
+        log.info("app | Super admin created successfully: {}", request.email());
     }
 
     @Override
@@ -56,7 +56,7 @@ public class UserServiceImpl implements UserService {
         user.setRole(request.role());
 
         User saved = userRepository.save(user);
-        log.info("User created with ID: {}", saved.getId());
+        log.info("app | User created with ID: {}", saved.getId());
 
         return userMapper.toResponse(saved);
     }
@@ -87,11 +87,11 @@ public class UserServiceImpl implements UserService {
 
         if (request.password() != null && !request.password().isBlank()) {
             user.setPassword(passwordEncoder.encode(request.password()));
-            log.debug("Password updated for user ID: {}", userId);
+            log.debug("app | Password updated for user ID: {}", userId);
         }
 
         User updated = userRepository.save(user);
-        log.info("User updated with ID: {}", userId);
+        log.info("app | User updated with ID: {}", userId);
 
         return userMapper.toResponse(updated);
     }
@@ -112,7 +112,7 @@ public class UserServiceImpl implements UserService {
 
         userRepository.delete(user);
 
-        log.info("User deleted with ID: {}", userId);
+        log.info("app | User deleted with ID: {}", userId);
     }
 
     @Override
@@ -130,11 +130,11 @@ public class UserServiceImpl implements UserService {
             if (excludeUserId != null) {
                 userRepository.findByEmail(email).ifPresent(user -> {
                     if (!user.getId().equals(excludeUserId)) {
-                        throw new IllegalArgumentException("Email is already in use: " + email);
+                        throw new IllegalArgumentException("Email is already in use");
                     }
                 });
             } else {
-                throw new IllegalArgumentException("Email is already in use: " + email);
+                throw new IllegalArgumentException("Email is already in use");
             }
         }
     }

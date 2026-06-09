@@ -77,7 +77,7 @@ public class DepartmentServiceImpl implements DepartmentService {
                 .build();
 
         Department saved = departmentRepository.save(department);
-        log.info("Created department with id={}", saved.getId());
+        log.info("app | Created department with id={}", saved.getId());
 
         return departmentMapper.toResponse(saved);
     }
@@ -105,7 +105,7 @@ public class DepartmentServiceImpl implements DepartmentService {
         department.setFaculty(faculty);
 
         Department updated = departmentRepository.save(department);
-        log.info("Updated department with id={}", updated.getId());
+        log.info("app | Updated department with id={}", updated.getId());
 
         return departmentMapper.toResponse(updated);
     }
@@ -143,7 +143,7 @@ public class DepartmentServiceImpl implements DepartmentService {
         }
 
         departmentRepository.delete(department);
-        log.info("Deleted department with id={} using mode={}", departmentId, mode);
+        log.info("app | Deleted department with id={} using mode={}", departmentId, mode);
     }
 
     private String normalize(String value) {

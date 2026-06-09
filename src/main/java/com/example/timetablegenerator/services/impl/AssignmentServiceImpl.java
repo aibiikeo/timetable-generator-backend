@@ -33,28 +33,28 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     @Override
     public List<AssignmentResponse> getAllAssignments(Long timetableId) {
-        log.debug("Fetching all assignments for timetableId={}", timetableId);
+        log.debug("app | Fetching all assignments for timetableId={}", timetableId);
 
         List<AssignmentResponse> responses = assignmentRepository.findByTimetableId(timetableId).stream()
                 .map(assignmentMapper::toResponse)
                 .toList();
 
-        log.debug("Fetched {} assignments for timetableId={}", responses.size(), timetableId);
+        log.debug("app | Fetched {} assignments for timetableId={}", responses.size(), timetableId);
         return responses;
     }
 
     @Override
     public Optional<AssignmentResponse> getAssignment(Long timetableId, Long assignmentId) {
-        log.debug("Fetching assignment id={} for timetableId={}", assignmentId, timetableId);
+        log.debug("app | Fetching assignment id={} for timetableId={}", assignmentId, timetableId);
 
         Optional<AssignmentResponse> response = assignmentRepository
                 .findByIdAndTimetableId(assignmentId, timetableId)
                 .map(assignmentMapper::toResponse);
 
         if (response.isPresent()) {
-            log.debug("Assignment found: id={} in timetableId={}", assignmentId, timetableId);
+            log.debug("app | Assignment found: id={} in timetableId={}", assignmentId, timetableId);
         } else {
-            log.debug("Assignment not found: id={} in timetableId={}", assignmentId, timetableId);
+            log.debug("app | Assignment not found: id={} in timetableId={}", assignmentId, timetableId);
         }
 
         return response;
@@ -73,19 +73,19 @@ public class AssignmentServiceImpl implements AssignmentService {
 
         Timetable timetable = timetableRepository.findById(timetableId)
                 .orElseThrow(() -> {
-                    log.warn("Timetable not found while creating assignment. timetableId={}", timetableId);
+                    log.warn("app | Timetable not found while creating assignment. timetableId={}", timetableId);
                     return new NotFoundException("Timetable not found with id: " + timetableId);
                 });
 
         Subject subject = subjectRepository.findById(request.subjectId())
                 .orElseThrow(() -> {
-                    log.warn("Subject not found while creating assignment. subjectId={}", request.subjectId());
+                    log.warn("app | Subject not found while creating assignment. subjectId={}", request.subjectId());
                     return new NotFoundException("Subject not found with id: " + request.subjectId());
                 });
 
         Teacher teacher = teacherRepository.findById(request.teacherId())
                 .orElseThrow(() -> {
-                    log.warn("Teacher not found while creating assignment. teacherId={}", request.teacherId());
+                    log.warn("app | Teacher not found while creating assignment. teacherId={}", request.teacherId());
                     return new NotFoundException("Teacher not found with id: " + request.teacherId());
                 });
 
@@ -139,13 +139,13 @@ public class AssignmentServiceImpl implements AssignmentService {
 
         Subject subject = subjectRepository.findById(request.subjectId())
                 .orElseThrow(() -> {
-                    log.warn("Subject not found while updating assignment. subjectId={}", request.subjectId());
+                    log.warn("app | Subject not found while updating assignment. subjectId={}", request.subjectId());
                     return new NotFoundException("Subject not found with id: " + request.subjectId());
                 });
 
         Teacher teacher = teacherRepository.findById(request.teacherId())
                 .orElseThrow(() -> {
-                    log.warn("Teacher not found while updating assignment. teacherId={}", request.teacherId());
+                    log.warn("app | Teacher not found while updating assignment. teacherId={}", request.teacherId());
                     return new NotFoundException("Teacher not found with id: " + request.teacherId());
                 });
 
@@ -214,10 +214,10 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     private Set<StudyGroup> loadGroups(List<Long> groupIds) {
-        log.debug("Loading study groups: {}", groupIds);
+        log.debug("app | Loading study groups: {}", groupIds);
 
         if (groupIds == null || groupIds.isEmpty()) {
-            log.warn("Assignment request contains no study groups");
+            log.warn("app | Assignment request contains no study groups");
             throw new IllegalArgumentException("Assignment must contain at least one study group");
         }
 
@@ -233,18 +233,18 @@ public class AssignmentServiceImpl implements AssignmentService {
             throw new NotFoundException("One or more study groups were not found");
         }
 
-        log.debug("Loaded {} study groups successfully", groups.size());
+        log.debug("app | Loaded {} study groups successfully", groups.size());
         return groups;
     }
 
     private void validateAssignmentRequest(AssignmentRequest request, Set<StudyGroup> groups) {
         if (request.hoursPerWeek() == null || request.hoursPerWeek() <= 0) {
-            log.warn("Invalid hoursPerWeek in assignment request: {}", request.hoursPerWeek());
+            log.warn("app | Invalid hoursPerWeek in assignment request: {}", request.hoursPerWeek());
             throw new IllegalArgumentException("hoursPerWeek must be greater than 0");
         }
 
         if (groups == null || groups.isEmpty()) {
-            log.warn("Assignment validation failed: groups are empty");
+            log.warn("app | Assignment validation failed: groups are empty");
             throw new IllegalArgumentException("Assignment must contain at least one study group");
         }
 

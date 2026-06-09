@@ -138,6 +138,6 @@ public class TeacherServiceImpl implements TeacherService {
         }
 
         teacherRepository.delete(teacher);
-        log.info("Deleted teacher with id={} using mode={}", teacherId, mode);
+        log.info("app | Deleted teacher with id={} using mode={}", teacherId, mode);
     }
 }

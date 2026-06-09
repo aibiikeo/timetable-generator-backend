@@ -92,7 +92,7 @@ public class MajorServiceImpl implements MajorService {
                 .build();
 
         Major saved = majorRepository.save(major);
-        log.info("Created major with id={}", saved.getId());
+        log.info("app | Created major with id={}", saved.getId());
 
         return majorMapper.toResponse(saved);
     }
@@ -122,7 +122,7 @@ public class MajorServiceImpl implements MajorService {
         major.setDepartment(department);
 
         Major updated = majorRepository.save(major);
-        log.info("Updated major with id={}", updated.getId());
+        log.info("app | Updated major with id={}", updated.getId());
 
         return majorMapper.toResponse(updated);
     }
@@ -172,7 +172,7 @@ public class MajorServiceImpl implements MajorService {
         }
 
         majorRepository.delete(major);
-        log.info("Deleted major with id={} using mode={}", majorId, mode);
+        log.info("app | Deleted major with id={} using mode={}", majorId, mode);
     }
 
     private String normalize(String value) {

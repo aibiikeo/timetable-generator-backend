@@ -105,7 +105,7 @@ public class SubjectServiceImpl implements SubjectService {
         subject.setMajor(major);
 
         Subject saved = subjectRepository.save(subject);
-        log.info("Created subject '{}' for major {}", saved.getName(), major.getId());
+        log.info("app | Created subject '{}' for major {}", saved.getName(), major.getId());
 
         return subjectMapper.toResponse(saved);
     }
@@ -129,7 +129,7 @@ public class SubjectServiceImpl implements SubjectService {
         subject.setMajor(major);
 
         Subject updated = subjectRepository.save(subject);
-        log.info("Updated subject {} -> '{}'", subjectId, updated.getName());
+        log.info("app | Updated subject {} -> '{}'", subjectId, updated.getName());
 
         return subjectMapper.toResponse(updated);
     }
@@ -176,7 +176,7 @@ public class SubjectServiceImpl implements SubjectService {
         subject.getGroups().clear();
 
         subjectRepository.delete(subject);
-        log.info("Deleted subject with id={} using mode={}", subjectId, mode);
+        log.info("app | Deleted subject with id={} using mode={}", subjectId, mode);
     }
 
     @Override

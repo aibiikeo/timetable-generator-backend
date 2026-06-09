@@ -70,7 +70,7 @@ public class RoomServiceImpl implements RoomService {
                 .build();
 
         Room saved = roomRepository.save(room);
-        log.info("Created room with id={}", saved.getId());
+        log.info("app | Created room with id={}", saved.getId());
 
         return roomMapper.toResponse(saved);
     }
@@ -99,7 +99,7 @@ public class RoomServiceImpl implements RoomService {
         room.setType(request.type());
 
         Room updated = roomRepository.save(room);
-        log.info("Updated room with id={}", updated.getId());
+        log.info("app | Updated room with id={}", updated.getId());
 
         return roomMapper.toResponse(updated);
     }
@@ -136,7 +136,7 @@ public class RoomServiceImpl implements RoomService {
         }
 
         roomRepository.delete(room);
-        log.info("Deleted room with id={} using mode={}", roomId, mode);
+        log.info("app | Deleted room with id={} using mode={}", roomId, mode);
     }
 
     private String normalize(String value) {

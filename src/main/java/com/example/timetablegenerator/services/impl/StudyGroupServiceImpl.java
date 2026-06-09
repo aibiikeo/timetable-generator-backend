@@ -90,7 +90,7 @@ public class StudyGroupServiceImpl implements StudyGroupService {
                 .build();
 
         StudyGroup saved = studyGroupRepository.save(group);
-        log.info("Created study group with id={}", saved.getId());
+        log.info("app | Created study group with id={}", saved.getId());
 
         return studyGroupMapper.toResponse(saved);
     }
@@ -119,7 +119,7 @@ public class StudyGroupServiceImpl implements StudyGroupService {
         group.setStudentCount(request.studentCount());
 
         StudyGroup updated = studyGroupRepository.save(group);
-        log.info("Updated study group with id={}", updated.getId());
+        log.info("app | Updated study group with id={}", updated.getId());
 
         return studyGroupMapper.toResponse(updated);
     }
@@ -197,7 +197,7 @@ public class StudyGroupServiceImpl implements StudyGroupService {
         }
 
         studyGroupRepository.delete(group);
-        log.info("Deleted study group with id={} using mode={}", groupId, mode);
+        log.info("app | Deleted study group with id={} using mode={}", groupId, mode);
     }
 
     private String normalize(String value) {
