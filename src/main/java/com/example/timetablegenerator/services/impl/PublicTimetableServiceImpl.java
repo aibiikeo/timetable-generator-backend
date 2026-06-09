@@ -1,6 +1,7 @@
 package com.example.timetablegenerator.services.impl;
 
 import com.example.timetablegenerator.domain.dto.response.PublicFilterOptionResponse;
+import com.example.timetablegenerator.domain.dto.response.LunchResponse;
 import com.example.timetablegenerator.domain.dto.response.PublicTimetableFilterOptionsResponse;
 import com.example.timetablegenerator.domain.dto.response.PublicTimetableLessonResponse;
 import com.example.timetablegenerator.domain.dto.response.PublicTimetableScheduleResponse;
@@ -8,6 +9,7 @@ import com.example.timetablegenerator.domain.dto.response.TimetableResponse;
 import com.example.timetablegenerator.domain.entities.Department;
 import com.example.timetablegenerator.domain.entities.Degree;
 import com.example.timetablegenerator.domain.entities.Faculty;
+import com.example.timetablegenerator.domain.entities.Lunch;
 import com.example.timetablegenerator.domain.entities.Lesson;
 import com.example.timetablegenerator.domain.entities.Major;
 import com.example.timetablegenerator.domain.entities.Room;
@@ -20,6 +22,7 @@ import com.example.timetablegenerator.exceptions.NotFoundException;
 import com.example.timetablegenerator.repositories.LessonRepository;
 import com.example.timetablegenerator.repositories.DepartmentRepository;
 import com.example.timetablegenerator.repositories.FacultyRepository;
+import com.example.timetablegenerator.repositories.LunchRepository;
 import com.example.timetablegenerator.repositories.RoomRepository;
 import com.example.timetablegenerator.repositories.StudyGroupRepository;
 import com.example.timetablegenerator.repositories.TeacherRepository;
@@ -51,6 +54,7 @@ public class PublicTimetableServiceImpl implements PublicTimetableService {
     private final StudyGroupRepository studyGroupRepository;
     private final TeacherRepository teacherRepository;
     private final RoomRepository roomRepository;
+    private final LunchRepository lunchRepository;
 
     @Override
     public PublicTimetableFilterOptionsResponse getFilterOptions(Long facultyId, Long departmentId) {
@@ -108,7 +112,24 @@ public class PublicTimetableServiceImpl implements PublicTimetableService {
                 .filter(Objects::nonNull)
                 .toList();
 
-        return new PublicTimetableScheduleResponse(timetableResponse, lessons.size(), lessons);
+        Map<Long, StudyGroup> groupsById = studyGroupRepository.findAll().stream()
+                .collect(Collectors.toMap(StudyGroup::getId, Function.identity(), (existing, ignored) -> existing));
+
+        List<LunchResponse> lunches = publishedTimetables.stream()
+                .flatMap(timetable -> lunchRepository.findByTimetableId(timetable.getId()).stream())
+                .filter(lunch -> matches(facultyId, faculty(groupsById.get(lunch.getGroupId())), Faculty::getId))
+                .filter(lunch -> matches(departmentId, department(groupsById.get(lunch.getGroupId())), Department::getId))
+                .filter(lunch -> matches(majorId, major(groupsById.get(lunch.getGroupId())), Major::getId))
+                .filter(lunch -> groupId == null || groupId.equals(lunch.getGroupId()))
+                .filter(lunch -> dayOfWeek == null || dayOfWeek.equals(lunch.getDayOfWeek()))
+                .map(this::toLunchResponse)
+                .sorted(Comparator
+                        .comparing(LunchResponse::getDayOfWeek)
+                        .thenComparing(LunchResponse::getStartTime)
+                        .thenComparing(LunchResponse::getGroupId))
+                .toList();
+
+        return new PublicTimetableScheduleResponse(timetableResponse, lessons.size(), lessons, lunches);
     }
 
     private TimetableResponse toTimetableSummary(Timetable timetable) {
@@ -124,7 +145,6 @@ public class PublicTimetableServiceImpl implements PublicTimetableService {
                 timetable.getVersion(),
                 timetable.getCreatedAt(),
                 timetable.getStatus(),
-                timetable.getGenerationSettings(),
                 timetable.getConflictReport(),
                 List.of(),
                 0,
@@ -211,6 +231,32 @@ public class PublicTimetableServiceImpl implements PublicTimetableService {
                 .map(StudyGroup::getDegree)
                 .filter(Objects::nonNull).min(Comparator.comparing(Enum::name))
                 .orElse(null);
+    }
+
+    private LunchResponse toLunchResponse(Lunch lunch) {
+        return LunchResponse.builder()
+                .id(lunch.getId())
+                .timetableId(lunch.getTimetableId())
+                .groupId(lunch.getGroupId())
+                .dayOfWeek(lunch.getDayOfWeek())
+                .startTime(lunch.getStartTime())
+                .endTime(lunch.getEndTime())
+                .manual(lunch.isManual())
+                .build();
+    }
+
+    private Faculty faculty(StudyGroup group) {
+        Department department = department(group);
+        return department != null ? department.getFaculty() : null;
+    }
+
+    private Department department(StudyGroup group) {
+        Major major = major(group);
+        return major != null ? major.getDepartment() : null;
+    }
+
+    private Major major(StudyGroup group) {
+        return group != null ? group.getMajor() : null;
     }
 
     private <T> boolean matches(Long expectedId, T entity, Function<T, Long> idGetter) {
