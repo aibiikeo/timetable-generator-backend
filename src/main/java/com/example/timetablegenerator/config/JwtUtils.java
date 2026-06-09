@@ -30,7 +30,7 @@ public class JwtUtils {
     public String generateJwtToken(Authentication authentication) {
         UserDetails userPrincipal = (UserDetails) authentication.getPrincipal();
         String token = generateTokenFromUsername(userPrincipal.getUsername(), jwtExpirationMs);
-        logger.info("Generated JWT token for user: {}", userPrincipal.getUsername());
+        logger.debug("app | Generated JWT token for user: {}", userPrincipal.getUsername());
         return token;
     }
 
@@ -59,16 +59,15 @@ public class JwtUtils {
             Jwts.parser().verifyWith(Keys.hmacShaKeyFor(jwtSecret.getBytes())).build().parseSignedClaims(authToken);
             return true;
         } catch (MalformedJwtException e) {
-            logger.error("Invalid JWT token: {}", e.getMessage());
-            logger.debug("Token content: {}", authToken);
+            logger.warn("app | Invalid JWT token: {}", e.getMessage());
         } catch (ExpiredJwtException e) {
-            logger.warn("JWT token is expired: {}", e.getMessage());
+            logger.warn("app | JWT token is expired: {}", e.getMessage());
         } catch (UnsupportedJwtException e) {
-            logger.error("JWT token is unsupported: {}", e.getMessage());
+            logger.warn("app | JWT token is unsupported: {}", e.getMessage());
         } catch (IllegalArgumentException e) {
-            logger.error("JWT claims string is empty: {}", e.getMessage());
+            logger.warn("app | JWT claims string is empty: {}", e.getMessage());
         } catch (Exception e) {
-            logger.error("Invalid JWT token: {}", e.getMessage());
+            logger.warn("app | Invalid JWT token: {}", e.getMessage());
         }
         return false;
     }

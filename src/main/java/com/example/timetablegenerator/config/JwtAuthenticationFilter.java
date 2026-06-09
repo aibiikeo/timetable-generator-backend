@@ -38,10 +38,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String jwt = parseJwt(request);
 
             if (jwt != null) {
-                logger.debug("Attempting to validate JWT token");
+                logger.debug("app | Attempting to validate JWT token");
 
                 if (!isValidJwtFormat(jwt)) {
-                    logger.warn("Invalid JWT format: token does not contain required parts");
+                    logger.warn("app | Invalid JWT format: token does not contain required parts");
                 } else if (jwtUtils.validateJwtToken(jwt)) {
                     String username = jwtUtils.getUserNameFromJwtToken(jwt);
 
@@ -51,11 +51,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                     SecurityContextHolder.getContext().setAuthentication(authentication);
-                    logger.debug("User {} authenticated successfully", username);
+                    logger.debug("app | User {} authenticated successfully", username);
                 }
             }
         } catch (Exception e) {
-            logger.error("Cannot set user authentication: {}", e.getMessage());
+            logger.error("app | Cannot set user authentication: {}", e.getMessage());
         }
 
         filterChain.doFilter(request, response);
@@ -68,17 +68,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String token = headerAuth.substring(7);
 
             if (!StringUtils.hasText(token)) {
-                logger.warn("Bearer token is empty after 'Bearer ' prefix");
+                logger.warn("app | Bearer token is empty after 'Bearer ' prefix");
                 return null;
             }
 
             if ("null".equalsIgnoreCase(token.trim())) {
-                logger.warn("Bearer token is literally 'null' string");
+                logger.warn("app | Bearer token is literally 'null' string");
                 return null;
             }
 
-            logger.debug("Extracted JWT token: {}... (first 20 chars)",
-                    token.length() > 20 ? token.substring(0, 20) : token);
+            logger.debug("app | JWT token extracted from request");
             return token;
         }
 

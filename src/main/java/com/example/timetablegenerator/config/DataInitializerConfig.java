@@ -22,7 +22,7 @@ public class DataInitializerConfig {
     public CommandLineRunner initSuperAdmin() {
         return args -> {
             if (userRepository.existsByRole(UserRole.SUPER_ADMIN)) {
-                log.info("Super admin already exists. Skipping creation.");
+                log.info("app | Super admin already exists. Skipping creation.");
                 return;
             }
 
@@ -33,9 +33,9 @@ public class DataInitializerConfig {
                 );
 
                 userService.createFirstSuperAdmin(request);
-                log.info("First super admin successfully created: {}", request.email());
+                log.info("app | First super admin successfully created: {}", request.email());
             } catch (Exception e) {
-                log.error("Error while creating super admin", e);
+                log.error("app | Error while creating super admin", e);
             }
         };
     }
