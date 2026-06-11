@@ -161,12 +161,14 @@ public class MajorServiceImpl implements MajorService {
             }
 
             case WITH -> {
-                for (Subject subject : subjects) {
-                    subjectService.deleteSubject(subject.getId(), DeleteMode.WITH);
-                }
-
                 for (StudyGroup group : groups) {
                     studyGroupService.deleteGroup(group.getId(), DeleteMode.WITH);
+                }
+
+                for (Subject subject : subjects) {
+                    if (subject.getId() != null && subjectRepository.existsById(subject.getId())) {
+                        subjectService.deleteSubject(subject.getId(), DeleteMode.WITH);
+                    }
                 }
             }
         }

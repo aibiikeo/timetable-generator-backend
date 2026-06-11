@@ -148,6 +148,10 @@ public class PublicTimetableServiceImpl implements PublicTimetableService {
                 timetable.getConflictReport(),
                 List.of(),
                 0,
+                0,
+                0,
+                0,
+                0,
                 0
         );
     }

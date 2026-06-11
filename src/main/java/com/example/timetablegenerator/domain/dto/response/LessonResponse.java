@@ -13,6 +13,7 @@ public record LessonResponse(
         String subjectName,
         String teacherName,
         List<String> groupNames,
+        Long roomId,
         String roomName,
         DayOfWeek dayOfWeek,
         LocalTime startTime,

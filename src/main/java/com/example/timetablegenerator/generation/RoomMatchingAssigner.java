@@ -2,6 +2,14 @@ package com.example.timetablegenerator.generation;
 
 import com.example.timetablegenerator.domain.entities.Room;
 import com.example.timetablegenerator.domain.entities.RoomType;
+import com.google.ortools.Loader;
+import com.google.ortools.sat.BoolVar;
+import com.google.ortools.sat.CpModel;
+import com.google.ortools.sat.CpSolver;
+import com.google.ortools.sat.CpSolverStatus;
+import com.google.ortools.sat.IntVar;
+import com.google.ortools.sat.LinearExpr;
+import com.google.ortools.sat.Literal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -14,12 +22,17 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class RoomMatchingAssigner {
 
+    static {
+        Loader.loadNativeLibraries();
+    }
+
     public record RoomAssignmentResult(
             Map<Long, CpSatScheduler.ScheduledSlot> placed,
             Set<Long> unplacedAfterRoomAssignment
     ) {}
 
     private record RoomOccupancyKey(Long roomId, DayOfWeek day, LocalTime slotTime) {}
+    private record VertexRoomKey(Long vertexId, Long roomId) {}
 
     public RoomAssignmentResult assign(
             Map<Long, SchedulingCandidateGenerator.TimeCandidate> selectedTimes,
@@ -29,101 +42,104 @@ public class RoomMatchingAssigner {
         Map<Long, LessonVertex> vertexById = vertices.stream()
                 .collect(Collectors.toMap(LessonVertex::getId, v -> v));
 
-        Map<DayOfWeek, Map<LocalTime, List<Long>>> byDayAndStart = new EnumMap<>(DayOfWeek.class);
+        CpModel model = new CpModel();
+        Map<VertexRoomKey, BoolVar> roomVars = new HashMap<>();
+        Map<Long, BoolVar> unplacedVars = new HashMap<>();
+        Map<RoomOccupancyKey, List<BoolVar>> roomOccupancy = new HashMap<>();
+
         for (Map.Entry<Long, SchedulingCandidateGenerator.TimeCandidate> entry : selectedTimes.entrySet()) {
-            byDayAndStart
-                    .computeIfAbsent(entry.getValue().day(), _d -> new TreeMap<>())
-                    .computeIfAbsent(entry.getValue().startTime(), _t -> new ArrayList<>())
-                    .add(entry.getKey());
+            Long vertexId = entry.getKey();
+            SchedulingCandidateGenerator.TimeCandidate candidate = entry.getValue();
+
+            List<Literal> chooseOne = new ArrayList<>();
+            for (Room room : candidate.allowedRooms()) {
+                if (room.getId() == null) {
+                    continue;
+                }
+
+                BoolVar var = model.newBoolVar("room_v" + vertexId + "_r" + room.getId());
+                roomVars.put(new VertexRoomKey(vertexId, room.getId()), var);
+                chooseOne.add(var);
+
+                for (LocalTime slotTime : candidate.coveredSlots()) {
+                    RoomOccupancyKey occupancyKey = new RoomOccupancyKey(room.getId(), candidate.day(), slotTime);
+                    roomOccupancy.computeIfAbsent(occupancyKey, _key -> new ArrayList<>()).add(var);
+                }
+            }
+
+            BoolVar unplaced = model.newBoolVar("room_unplaced_v" + vertexId);
+            unplacedVars.put(vertexId, unplaced);
+            chooseOne.add(unplaced);
+
+            model.addExactlyOne(chooseOne.toArray(new Literal[0]));
+        }
+
+        for (List<BoolVar> vars : roomOccupancy.values()) {
+            if (vars.size() > 1) {
+                model.addAtMostOne(vars.toArray(new Literal[0]));
+            }
+        }
+
+        model.minimize(LinearExpr.sum(unplacedVars.values().toArray(new IntVar[0])));
+
+        CpSolver solver = new CpSolver();
+        solver.getParameters().setMaxTimeInSeconds(30.0);
+        solver.getParameters().setNumSearchWorkers(6);
+        CpSolverStatus status = solver.solve(model);
+
+        if (status != CpSolverStatus.OPTIMAL && status != CpSolverStatus.FEASIBLE) {
+            return new RoomAssignmentResult(
+                    Collections.emptyMap(),
+                    new LinkedHashSet<>(selectedTimes.keySet())
+            );
         }
 
         Map<Long, CpSatScheduler.ScheduledSlot> placed = new LinkedHashMap<>();
         Set<Long> unplaced = new LinkedHashSet<>();
-        Set<RoomOccupancyKey> occupied = new HashSet<>();
 
-        for (DayOfWeek day : byDayAndStart.keySet()) {
-            for (Map.Entry<LocalTime, List<Long>> startEntry : byDayAndStart.get(day).entrySet()) {
-                List<Long> vertexIds = new ArrayList<>(startEntry.getValue());
-                vertexIds.sort(roomPriorityComparator(vertexById, allRooms));
-
-                Map<Long, List<Long>> adjacency = new LinkedHashMap<>();
-                for (Long vertexId : vertexIds) {
-                    LessonVertex vertex = vertexById.get(vertexId);
-                    SchedulingCandidateGenerator.TimeCandidate candidate = selectedTimes.get(vertexId);
-
-                    List<Long> roomIds = candidate.allowedRooms().stream()
-                            .map(Room::getId)
-                            .filter(id -> isRoomFree(id, candidate, occupied))
-                            .toList();
-
-                    adjacency.put(vertexId, roomIds);
-                }
-
-                Map<Long, Long> roomToVertex = new HashMap<>();
-                for (Long vertexId : vertexIds) {
-                    tryAugment(vertexId, adjacency, roomToVertex, new HashSet<>());
-                }
-
-                for (Long vertexId : vertexIds) {
-                    Long matchedRoomId = findRoomForVertex(roomToVertex, vertexId);
-                    if (matchedRoomId == null) {
-                        unplaced.add(vertexId);
-                        continue;
-                    }
-
-                    SchedulingCandidateGenerator.TimeCandidate candidate = selectedTimes.get(vertexId);
-                    occupyRoom(matchedRoomId, candidate, occupied);
-                    Room room = findRoomById(allRooms, matchedRoomId);
-
-                    placed.put(vertexId, new CpSatScheduler.ScheduledSlot(
-                            candidate.day(),
-                            candidate.startTime(),
-                            vertexById.get(vertexId).getDurationHours(),
-                            room
-                    ));
-                }
+        for (Long vertexId : selectedTimes.keySet()) {
+            BoolVar unplacedVar = unplacedVars.get(vertexId);
+            if (unplacedVar != null && solver.booleanValue(unplacedVar)) {
+                unplaced.add(vertexId);
+                continue;
             }
+
+            SchedulingCandidateGenerator.TimeCandidate candidate = selectedTimes.get(vertexId);
+            Room room = findSelectedRoom(candidate, vertexId, roomVars, solver, allRooms);
+            if (room == null) {
+                unplaced.add(vertexId);
+                continue;
+            }
+
+            placed.put(vertexId, new CpSatScheduler.ScheduledSlot(
+                    candidate.day(),
+                    candidate.startTime(),
+                    vertexById.get(vertexId).getDurationHours(),
+                    room
+            ));
         }
 
         return new RoomAssignmentResult(placed, unplaced);
     }
 
-    private boolean tryAugment(
+    private Room findSelectedRoom(
+            SchedulingCandidateGenerator.TimeCandidate candidate,
             Long vertexId,
-            Map<Long, List<Long>> adjacency,
-            Map<Long, Long> roomToVertex,
-            Set<Long> visitedRooms
+            Map<VertexRoomKey, BoolVar> roomVars,
+            CpSolver solver,
+            List<Room> allRooms
     ) {
-        for (Long roomId : adjacency.getOrDefault(vertexId, Collections.emptyList())) {
-            if (!visitedRooms.add(roomId)) continue;
+        for (Room room : candidate.allowedRooms()) {
+            if (room.getId() == null) {
+                continue;
+            }
 
-            Long currentVertex = roomToVertex.get(roomId);
-            if (currentVertex == null || tryAugment(currentVertex, adjacency, roomToVertex, visitedRooms)) {
-                roomToVertex.put(roomId, vertexId);
-                return true;
+            BoolVar var = roomVars.get(new VertexRoomKey(vertexId, room.getId()));
+            if (var != null && solver.booleanValue(var)) {
+                return findRoomById(allRooms, room.getId());
             }
         }
-        return false;
-    }
-
-    private Long findRoomForVertex(Map<Long, Long> roomToVertex, Long vertexId) {
-        for (Map.Entry<Long, Long> entry : roomToVertex.entrySet()) {
-            if (Objects.equals(entry.getValue(), vertexId)) return entry.getKey();
-        }
         return null;
-    }
-
-    private boolean isRoomFree(Long roomId, SchedulingCandidateGenerator.TimeCandidate candidate, Set<RoomOccupancyKey> occupied) {
-        for (LocalTime slotTime : candidate.coveredSlots()) {
-            if (occupied.contains(new RoomOccupancyKey(roomId, candidate.day(), slotTime))) return false;
-        }
-        return true;
-    }
-
-    private void occupyRoom(Long roomId, SchedulingCandidateGenerator.TimeCandidate candidate, Set<RoomOccupancyKey> occupied) {
-        for (LocalTime slotTime : candidate.coveredSlots()) {
-            occupied.add(new RoomOccupancyKey(roomId, candidate.day(), slotTime));
-        }
     }
 
     private Room findRoomById(List<Room> rooms, Long roomId) {

@@ -39,7 +39,10 @@ public interface AssignmentMapper {
     @Mapping(target = "teacherName", source = "teacher.fullName")
     @Mapping(target = "groupIds", source = "groups", qualifiedByName = "mapGroupIds")
     @Mapping(target = "groupNames", source = "groups", qualifiedByName = "mapGroupNames")
-    @Mapping(target = "requiredLessonsCount", source = "hoursPerWeek", qualifiedByName = "requiredLessonsCount")
+    @Mapping(target = "requiredLessonsCount", source = ".", qualifiedByName = "requiredLessonBlocksCount")
+    @Mapping(target = "generatedLessonBlocksCount", source = "generatedLessonsCount")
+    @Mapping(target = "requiredLessonBlocksCount", source = ".", qualifiedByName = "requiredLessonBlocksCount")
+    @Mapping(target = "requiredLessonSlotsCount", source = "hoursPerWeek", qualifiedByName = "requiredLessonSlotsCount")
     @Mapping(target = "placementStatus", source = "placementStatus", qualifiedByName = "mapPlacementStatus")
     @Mapping(target = "splittingOptions", source = "hoursPerWeek", qualifiedByName = "buildSplittingOptions")
     @Mapping(target = "selectedSplitting", source = "hoursSplitting")
@@ -101,9 +104,21 @@ public interface AssignmentMapper {
                 .orElse(null);
     }
 
-    @Named("requiredLessonsCount")
-    default int requiredLessonsCount(Integer hoursPerWeek) {
+    @Named("requiredLessonSlotsCount")
+    default int requiredLessonSlotsCount(Integer hoursPerWeek) {
         return hoursPerWeek != null ? hoursPerWeek : 0;
+    }
+
+    @Named("requiredLessonBlocksCount")
+    default int requiredLessonBlocksCount(Assignment assignment) {
+        if (assignment == null) {
+            return 0;
+        }
+
+        return HoursSplittingUtils.parseSplitting(
+                assignment.getHoursSplitting(),
+                assignment.getHoursPerWeek() == null ? 0 : assignment.getHoursPerWeek()
+        ).size();
     }
 
     @Named("mapPlacementStatus")

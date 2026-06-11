@@ -62,6 +62,7 @@ public class CpSatModel {
 
     private static final int GROUP_DAILY_LOAD_LIMIT = 4;
     private static final int TEACHER_DAILY_LOAD_LIMIT = 5;
+    private static final int MAX_SATURDAY_LESSONS = 3;
     private static final LocalTime LUNCH_WINDOW_START = LocalTime.NOON;
     private static final LocalTime LUNCH_WINDOW_END = LocalTime.of(14, 0);
 
@@ -100,6 +101,7 @@ public class CpSatModel {
 
         addSoftSameDayAssignmentPenalties(build.model(), build.assignmentDayOccupancy(), build.softTerms());
         addHardSameDaySubjectGroupConstraints(build.model(), build.subjectGroupDayOccupancy());
+        addSaturdayLessonLimit(build.model(), build.timeVars());
         addGapAndLongDayPenalties(build.model(), teacherBusyVars, context.normalizedSlots(), build.softTerms(), PENALTY_TEACHER_GAP, PENALTY_TEACHER_STRETCHED_DAY, "teacher");
         addGapAndLongDayPenalties(build.model(), groupBusyVars, context.normalizedSlots(), build.softTerms(), PENALTY_GROUP_GAP, PENALTY_GROUP_STRETCHED_DAY, "group");
         addDailyLoadBalancePenalties(build.model(), teacherBusyVars, context.normalizedSlots(), build.softTerms(), TEACHER_DAILY_LOAD_LIMIT, PENALTY_TEACHER_DAILY_OVERLOAD, "teacher");
@@ -242,7 +244,7 @@ public class CpSatModel {
     }
 
     private void configureSolver(CpSolver solver) {
-        solver.getParameters().setMaxTimeInSeconds(30.0);
+        solver.getParameters().setMaxTimeInSeconds(90.0);
         solver.getParameters().setNumSearchWorkers(6);
     }
 
@@ -370,6 +372,23 @@ public class CpSatModel {
             if (vars.size() > 1) {
                 model.addAtMostOne(vars.toArray(new Literal[0]));
             }
+        }
+    }
+
+    private void addSaturdayLessonLimit(
+            CpModel model,
+            Map<TimeVarKey, BoolVar> timeVars
+    ) {
+        List<BoolVar> saturdayVars = timeVars.entrySet().stream()
+                .filter(entry -> entry.getKey().day() == DayOfWeek.SATURDAY)
+                .map(Map.Entry::getValue)
+                .toList();
+
+        if (!saturdayVars.isEmpty()) {
+            model.addLessOrEqual(
+                    LinearExpr.sum(saturdayVars.toArray(new IntVar[0])),
+                    MAX_SATURDAY_LESSONS
+            );
         }
     }
 

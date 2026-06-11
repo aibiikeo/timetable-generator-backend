@@ -21,6 +21,10 @@ public record TimetableResponse(
         Map<String, Object> conflictReport,
         List<AssignmentResponse> assignments,
         int totalLessons,
-        int totalRequiredLessons
+        int totalRequiredLessons,
+        int totalLessonBlocks,
+        int totalRequiredLessonBlocks,
+        int totalLessonSlots,
+        int totalRequiredLessonSlots
 ) {
 }

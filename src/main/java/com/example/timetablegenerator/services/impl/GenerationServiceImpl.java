@@ -4,6 +4,7 @@ import com.example.timetablegenerator.domain.dto.request.AssignmentRequest;
 import com.example.timetablegenerator.domain.dto.request.GenerationMode;
 import com.example.timetablegenerator.domain.dto.response.AssignmentResponse;
 import com.example.timetablegenerator.domain.dto.response.GenerationResponse;
+import com.example.timetablegenerator.domain.dto.response.ManualPlacementSuggestionResponse;
 import com.example.timetablegenerator.domain.dto.response.UnplacedLesson;
 import com.example.timetablegenerator.domain.entities.*;
 import com.example.timetablegenerator.exceptions.NotFoundException;
@@ -113,7 +114,8 @@ public class GenerationServiceImpl implements GenerationService {
         }
 
         if (mode == GenerationMode.NEW) {
-            lessonRepository.deleteAll(lessonRepository.findByTimetableId(timetableId));
+            lessonRepository.deleteLessonGroupLinksByTimetableId(timetableId);
+            lessonRepository.deleteByTimetableId(timetableId);
             lunchRepository.deleteByTimetableIdAndManualFalse(timetableId);
             log.info("app | Generation mode NEW: existing lessons deleted for timetableId={}", timetableId);
         } else {
@@ -174,6 +176,7 @@ public class GenerationServiceImpl implements GenerationService {
         List<Lesson> lessonsToSave = new ArrayList<>();
         int placedCount = 0;
         int failedCount = 0;
+        int placedSlotsCount = 0;
 
         for (LessonVertex vertex : vertices) {
             CpSatScheduler.ScheduledSlot slot = placement.get(vertex.getId());
@@ -204,6 +207,7 @@ public class GenerationServiceImpl implements GenerationService {
 
             lessonsToSave.add(lesson);
             placedCount++;
+            placedSlotsCount += vertex.getDurationHours();
         }
 
         lessonRepository.saveAll(lessonsToSave);
@@ -306,22 +310,40 @@ public class GenerationServiceImpl implements GenerationService {
         }
         timetableRepository.save(timetable);
 
+        int totalLessonBlocks = vertices.size();
+        int placedLessonBlocks = placedCount;
+        int failedLessonBlocks = failedCount;
+        int totalLessonSlots = vertices.stream()
+                .mapToInt(LessonVertex::getDurationHours)
+                .sum();
+        int placedLessonSlots = placedSlotsCount;
+        int failedLessonSlots = totalLessonSlots - placedLessonSlots;
+
         log.info(
-                "Generation finished: timetableId={}, timetableStatus={}, totalVertices={}, placedLessons={}, failedVertices={}, failedAssignments={}",
+                "Generation finished: timetableId={}, timetableStatus={}, totalBlocks={}, placedBlocks={}, failedBlocks={}, totalSlots={}, placedSlots={}, failedSlots={}, failedAssignments={}",
                 timetableId,
                 timetable.getStatus(),
-                vertices.size(),
-                placedCount,
-                failedCount,
+                totalLessonBlocks,
+                placedLessonBlocks,
+                failedLessonBlocks,
+                totalLessonSlots,
+                placedLessonSlots,
+                failedLessonSlots,
                 failedAssignments.size()
         );
 
         return GenerationResponse.builder()
                 .timetableId(timetableId)
                 .timetableName(timetable.getName())
-                .totalVertices(vertices.size())
-                .placedLessonsCount(placedCount)
-                .failedVerticesCount(failedCount)
+                .totalVertices(totalLessonBlocks)
+                .placedLessonsCount(placedLessonBlocks)
+                .failedVerticesCount(failedLessonBlocks)
+                .totalLessonBlocks(totalLessonBlocks)
+                .placedLessonBlocksCount(placedLessonBlocks)
+                .failedLessonBlocksCount(failedLessonBlocks)
+                .totalLessonSlots(totalLessonSlots)
+                .placedLessonSlotsCount(placedLessonSlots)
+                .failedLessonSlotsCount(failedLessonSlots)
                 .status(timetable.getStatus())
                 .failedAssignments(failedAssignments)
                 .build();
@@ -351,42 +373,69 @@ public class GenerationServiceImpl implements GenerationService {
         DayOfWeek day = DayOfWeek.valueOf(dayOfWeekStr.toUpperCase());
         LocalTime startTime = LocalTime.parse(startTimeStr);
 
-        Assignment assignment = assignmentRepository.findById(assignmentId)
-                .orElseThrow(() -> new NotFoundException("Assignment not found"));
+        Assignment assignment = assignmentRepository.findByIdAndTimetableId(assignmentId, timetableId)
+                .orElseThrow(() -> new NotFoundException(
+                        "Assignment not found with id: " + assignmentId + " in timetable: " + timetableId));
 
-        boolean teacherBusy = false;
-        for (int h = 0; h < durationHours; h++) {
-            LocalTime current = startTime.plusHours(h);
-            if (lessonRepository.existsByTimetableIdAndTeacherIdAndDayOfWeekAndStartTime(
-                    timetableId, assignment.getTeacher().getId(), day, current)) {
-                teacherBusy = true;
-                break;
-            }
-        }
-        if (teacherBusy) {
-            return false;
-        }
-
-        for (StudyGroup group : assignment.getGroups()) {
-            for (int h = 0; h < durationHours; h++) {
-                LocalTime current = startTime.plusHours(h);
-                if (lessonRepository.existsByTimetableIdAndGroupIdAndDayOfWeekAndStartTime(
-                        timetableId, group.getId(), day, current)) {
-                    return false;
-                }
-            }
-        }
-
-        for (int h = 0; h < durationHours; h++) {
-            LocalTime current = startTime.plusHours(h);
-            if (lessonRepository.existsByTimetableIdAndRoomIdAndDayOfWeekAndStartTime(
-                    timetableId, roomId, day, current)) {
-                return false;
-            }
-        }
+        List<LocalTime> coveredSlots = resolveCoveredSlotStarts(day, startTime, durationHours);
+        Set<LocalTime> targetSlotSet = new HashSet<>(coveredSlots);
 
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new NotFoundException("Room not found"));
+
+        List<Lesson> dayLessons = lessonRepository.findByTimetableId(timetableId).stream()
+                .filter(lesson -> day.equals(lesson.getDayOfWeek()))
+                .toList();
+
+        for (Lesson existingLesson : dayLessons) {
+            Set<LocalTime> existingSlotSet = new HashSet<>(resolveCoveredSlotStarts(
+                    existingLesson.getDayOfWeek(),
+                    existingLesson.getStartTime(),
+                    existingLesson.getDurationHours()
+            ));
+
+            if (Collections.disjoint(targetSlotSet, existingSlotSet)) {
+                continue;
+            }
+
+            if (assignment.getTeacher() != null
+                    && existingLesson.getTeacher() != null
+                    && Objects.equals(assignment.getTeacher().getId(), existingLesson.getTeacher().getId())) {
+                log.warn(
+                        "app | Manual placement rejected: teacher conflict for assignment={} with lesson={} teacher={} at {} {}",
+                        assignmentId,
+                        existingLesson.getId(),
+                        assignment.getTeacher().getId(),
+                        day,
+                        startTime
+                );
+                return false;
+            }
+
+            if (hasSharedGroup(assignment.getGroups(), existingLesson.getGroups())) {
+                log.warn(
+                        "app | Manual placement rejected: group conflict for assignment={} with lesson={} at {} {}",
+                        assignmentId,
+                        existingLesson.getId(),
+                        day,
+                        startTime
+                );
+                return false;
+            }
+
+            if (existingLesson.getRoom() != null
+                    && Objects.equals(room.getId(), existingLesson.getRoom().getId())) {
+                log.warn(
+                        "app | Manual placement rejected: room conflict for assignment={} with lesson={} room={} at {} {}",
+                        assignmentId,
+                        existingLesson.getId(),
+                        room.getId(),
+                        day,
+                        startTime
+                );
+                return false;
+            }
+        }
 
         Lesson lesson = Lesson.builder()
                 .timetable(assignment.getTimetable())
@@ -400,7 +449,17 @@ public class GenerationServiceImpl implements GenerationService {
                 .durationHours(durationHours)
                 .build();
 
-        lessonRepository.save(lesson);
+        Lesson savedLesson = lessonRepository.save(lesson);
+        log.info(
+                "app | Manual placement saved lesson={} assignment={} timetable={} groupCount={} room={} at {} {}",
+                savedLesson.getId(),
+                assignmentId,
+                timetableId,
+                savedLesson.getGroups() == null ? 0 : savedLesson.getGroups().size(),
+                room.getId(),
+                day,
+                startTime
+        );
 
         List<Lesson> assignedLessons = lessonRepository.findByAssignmentId(assignmentId);
         int totalHoursAssigned = assignedLessons.stream()
@@ -420,6 +479,305 @@ public class GenerationServiceImpl implements GenerationService {
         assignmentRepository.save(assignment);
 
         return true;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ManualPlacementSuggestionResponse> suggestManualPlacements(
+            Long timetableId,
+            Long assignmentId,
+            Integer durationHours,
+            int limit
+    ) {
+        Assignment assignment = assignmentRepository.findByIdAndTimetableId(assignmentId, timetableId)
+                .orElseThrow(() -> new NotFoundException(
+                        "Assignment not found with id: " + assignmentId + " in timetable: " + timetableId));
+
+        int duration = durationHours == null ? 0 : durationHours;
+        if (duration < 1) {
+            throw new IllegalArgumentException("Lesson duration must be at least 1 slot");
+        }
+
+        int remainingHours = remainingHours(assignment);
+        if (duration > remainingHours) {
+            return List.of();
+        }
+
+        int safeLimit = Math.max(1, Math.min(limit, 100));
+        List<Room> rooms = roomsForManualPlacement(assignment);
+        if (rooms.isEmpty()) {
+            return List.of();
+        }
+
+        List<Lesson> timetableLessons = lessonRepository.findByTimetableId(timetableId);
+        List<ManualPlacementSuggestionResponse> suggestions = new ArrayList<>();
+
+        for (DayOfWeek day : TEACHING_DAYS) {
+            List<TimeSlot> daySlots = timeSlotRepository.findLessonSlotsByDay(day);
+            for (int startIdx = 0; startIdx + duration <= daySlots.size(); startIdx++) {
+                TimeSlot startSlot = daySlots.get(startIdx);
+                TimeSlot endSlot = daySlots.get(startIdx + duration - 1);
+
+                Set<LocalTime> targetSlotSet = daySlots.subList(startIdx, startIdx + duration).stream()
+                        .map(TimeSlot::getStartTime)
+                        .collect(Collectors.toSet());
+
+                for (Room room : rooms) {
+                    if (hasPlacementConflict(assignment, room, day, targetSlotSet, timetableLessons)) {
+                        continue;
+                    }
+
+                    suggestions.add(new ManualPlacementSuggestionResponse(
+                            day,
+                            startSlot.getStartTime(),
+                            endSlot.getEndTime(),
+                            duration,
+                            room.getId(),
+                            room.getName(),
+                            room.getType(),
+                            room.getCapacity(),
+                            suggestionScore(assignment, room, day, startSlot.getStartTime(), endSlot.getEndTime())
+                    ));
+                }
+            }
+        }
+
+        return suggestions.stream()
+                .sorted(Comparator
+                        .comparingInt(ManualPlacementSuggestionResponse::score)
+                        .thenComparing(ManualPlacementSuggestionResponse::dayOfWeek)
+                        .thenComparing(ManualPlacementSuggestionResponse::startTime)
+                        .thenComparing(ManualPlacementSuggestionResponse::roomId))
+                .limit(safeLimit)
+                .toList();
+    }
+
+    private List<LocalTime> resolveCoveredSlotStarts(
+            DayOfWeek day,
+            LocalTime startTime,
+            Integer durationSlots
+    ) {
+        int duration = durationSlots == null ? 0 : durationSlots;
+        if (duration < 1) {
+            throw new IllegalArgumentException("Lesson duration must be at least 1 slot");
+        }
+
+        List<TimeSlot> daySlots = timeSlotRepository.findLessonSlotsByDay(day);
+        for (int i = 0; i < daySlots.size(); i++) {
+            if (!daySlots.get(i).getStartTime().equals(startTime)) {
+                continue;
+            }
+
+            int endExclusive = i + duration;
+            if (endExclusive > daySlots.size()) {
+                throw new IllegalArgumentException("Selected time does not have enough consecutive slots");
+            }
+
+            return daySlots.subList(i, endExclusive).stream()
+                    .map(TimeSlot::getStartTime)
+                    .toList();
+        }
+
+        throw new IllegalArgumentException("Selected start time is not a valid lesson slot");
+    }
+
+    private boolean hasPlacementConflict(
+            Assignment assignment,
+            Room room,
+            DayOfWeek day,
+            Set<LocalTime> targetSlotSet,
+            List<Lesson> timetableLessons
+    ) {
+        for (Lesson existingLesson : timetableLessons) {
+            if (!day.equals(existingLesson.getDayOfWeek())) {
+                continue;
+            }
+
+            Set<LocalTime> existingSlotSet = new HashSet<>(resolveCoveredSlotStarts(
+                    existingLesson.getDayOfWeek(),
+                    existingLesson.getStartTime(),
+                    existingLesson.getDurationHours()
+            ));
+
+            if (Collections.disjoint(targetSlotSet, existingSlotSet)) {
+                continue;
+            }
+
+            if (assignment.getTeacher() != null
+                    && existingLesson.getTeacher() != null
+                    && Objects.equals(assignment.getTeacher().getId(), existingLesson.getTeacher().getId())) {
+                return true;
+            }
+
+            if (hasSharedGroup(assignment.getGroups(), existingLesson.getGroups())) {
+                return true;
+            }
+
+            if (existingLesson.getRoom() != null
+                    && Objects.equals(room.getId(), existingLesson.getRoom().getId())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private List<Room> roomsForManualPlacement(Assignment assignment) {
+        int requiredCapacity = requiredRoomCapacity(assignment);
+        List<Room> result = new ArrayList<>(roomRepository.findAll());
+
+        result.sort(Comparator
+                .comparing((Room room) -> !isSpecificRoomMatch(assignment, room))
+                .thenComparing(room -> !isRoomTypeCompatible(assignment, room))
+                .thenComparing(room -> !hasRequiredCapacity(room, requiredCapacity))
+                .thenComparing(Room::getId));
+        return result;
+    }
+
+    private boolean isSpecificRoomMatch(Assignment assignment, Room room) {
+        return assignment.getSpecificRoomId() == null
+                || Objects.equals(room.getId(), assignment.getSpecificRoomId());
+    }
+
+    private boolean isRoomTypeCompatible(Assignment assignment, Room room) {
+        return assignment.getRoomTypeRequired() == null
+                || assignment.getRoomTypeRequired() == RoomType.ANY
+                || room.getType() == assignment.getRoomTypeRequired();
+    }
+
+    private int requiredRoomCapacity(Assignment assignment) {
+        if (assignment.getGroups() == null) {
+            return 0;
+        }
+
+        return assignment.getGroups().stream()
+                .map(StudyGroup::getStudentCount)
+                .filter(Objects::nonNull)
+                .mapToInt(Integer::intValue)
+                .sum();
+    }
+
+    private boolean hasRequiredCapacity(Room room, int requiredCapacity) {
+        return requiredCapacity <= 0 || (room.getCapacity() != null && room.getCapacity() >= requiredCapacity);
+    }
+
+    private boolean isExcludedDay(Assignment assignment, DayOfWeek day) {
+        return assignment.getExcludedDays() != null && assignment.getExcludedDays().contains(day);
+    }
+
+    private boolean isShiftCompatible(Shift shift, LocalTime startTime) {
+        if (shift == null || shift == Shift.ANY) {
+            return true;
+        }
+
+        boolean isMorning = startTime.isBefore(LocalTime.NOON);
+        return (shift == Shift.MORNING && isMorning)
+                || (shift == Shift.AFTERNOON && !isMorning);
+    }
+
+    private boolean isExcludedByTimeRule(
+            Assignment assignment,
+            DayOfWeek day,
+            LocalTime blockStart,
+            LocalTime blockEnd
+    ) {
+        if (assignment.getExcludedTimeSlots() == null || assignment.getExcludedTimeSlots().isEmpty()) {
+            return false;
+        }
+
+        for (TimeSlotExclusion exclusion : assignment.getExcludedTimeSlots()) {
+            if (exclusion.getDay() != day) {
+                continue;
+            }
+
+            LocalTime excludedStart = LocalTime.parse(exclusion.getStartTime());
+            LocalTime excludedEnd = LocalTime.parse(exclusion.getEndTime());
+            if (blockStart.isBefore(excludedEnd) && blockEnd.isAfter(excludedStart)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private int suggestionScore(
+            Assignment assignment,
+            Room room,
+            DayOfWeek day,
+            LocalTime startTime,
+            LocalTime endTime
+    ) {
+        int score = 0;
+
+        if (assignment.getPreferredDays() != null
+                && !assignment.getPreferredDays().isEmpty()
+                && !assignment.getPreferredDays().contains(day)) {
+            score += 15;
+        }
+
+        if (isExcludedDay(assignment, day)) {
+            score += 2_000;
+        }
+
+        if (!isShiftCompatible(assignment.getShift(), startTime)) {
+            score += 500;
+        }
+
+        if (isExcludedByTimeRule(assignment, day, startTime, endTime)) {
+            score += 2_000;
+        }
+
+        if (day == DayOfWeek.SATURDAY) {
+            score += 9_500;
+        }
+
+        if (!startTime.isBefore(LocalTime.of(16, 0))) {
+            score += 25;
+        } else if (!startTime.isBefore(LocalTime.NOON)) {
+            score += 10;
+        }
+
+        int requiredCapacity = requiredRoomCapacity(assignment);
+        if (!isSpecificRoomMatch(assignment, room)) {
+            score += 300;
+        }
+
+        if (!isRoomTypeCompatible(assignment, room)) {
+            score += 500;
+        }
+
+        if (!hasRequiredCapacity(room, requiredCapacity)) {
+            score += 1_000;
+        }
+
+        return score;
+    }
+
+    private int remainingHours(Assignment assignment) {
+        int placedHours = lessonRepository.findByAssignmentId(assignment.getId()).stream()
+                .map(Lesson::getDurationHours)
+                .filter(Objects::nonNull)
+                .mapToInt(Integer::intValue)
+                .sum();
+
+        int weeklyHours = assignment.getHoursPerWeek() == null ? 0 : assignment.getHoursPerWeek();
+        return Math.max(0, weeklyHours - placedHours);
+    }
+
+    private boolean hasSharedGroup(Set<StudyGroup> firstGroups, Set<StudyGroup> secondGroups) {
+        if (firstGroups == null || secondGroups == null || firstGroups.isEmpty() || secondGroups.isEmpty()) {
+            return false;
+        }
+
+        Set<Long> firstGroupIds = firstGroups.stream()
+                .map(StudyGroup::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        return secondGroups.stream()
+                .map(StudyGroup::getId)
+                .filter(Objects::nonNull)
+                .anyMatch(firstGroupIds::contains);
     }
 
     private AssignmentResponse convertToResponse(Assignment assignment) {

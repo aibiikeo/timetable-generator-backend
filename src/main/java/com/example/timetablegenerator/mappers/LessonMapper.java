@@ -30,6 +30,7 @@ public interface LessonMapper {
     @Mapping(target = "subjectName", source = "subject.name")
     @Mapping(target = "teacherName", source = "teacher.fullName")
     @Mapping(target = "groupNames", source = "groups", qualifiedByName = "mapGroupNames")
+    @Mapping(target = "roomId", source = "room.id")
     @Mapping(target = "roomName", source = "room", qualifiedByName = "mapRoomName")
 
     @Mapping(target = "majorId", source = "subject.major.id")

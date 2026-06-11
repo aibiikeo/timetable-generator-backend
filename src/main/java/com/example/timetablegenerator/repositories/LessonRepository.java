@@ -3,6 +3,7 @@ package com.example.timetablegenerator.repositories;
 import com.example.timetablegenerator.domain.entities.Lesson;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -43,6 +44,18 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
     List<Lesson> findByGroupId(@Param("groupId") Long groupId);
 
     List<Lesson> findBySubjectId(Long subjectId);
+
+    @Modifying
+    @Query(value = """
+            DELETE FROM lesson_groups lg
+            USING lessons l
+            WHERE lg.lesson_id = l.id
+              AND l.timetable_id = :timetableId
+            """, nativeQuery = true)
+    void deleteLessonGroupLinksByTimetableId(@Param("timetableId") Long timetableId);
+
+    @Modifying
+    void deleteByTimetableId(Long timetableId);
 
     boolean existsByTimetableIdAndTeacherIdAndDayOfWeekAndStartTime(
             Long timetableId, Long teacherId, DayOfWeek dayOfWeek, LocalTime startTime);

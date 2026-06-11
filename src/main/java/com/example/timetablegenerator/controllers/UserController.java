@@ -1,6 +1,7 @@
 package com.example.timetablegenerator.controllers;
 
 import com.example.timetablegenerator.domain.dto.request.UserRequest;
+import com.example.timetablegenerator.domain.dto.request.UserUpdateRequest;
 import com.example.timetablegenerator.domain.dto.response.UserResponse;
 import com.example.timetablegenerator.exceptions.NotFoundException;
 import com.example.timetablegenerator.services.UserService;
@@ -43,7 +44,7 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    public UserResponse updateUser(@PathVariable Long id, @Valid @RequestBody UserRequest request) {
+    public UserResponse updateUser(@PathVariable Long id, @Valid @RequestBody UserUpdateRequest request) {
         log.info("app | Updating user ID: {}", id);
         return userService.updateUser(id, request);
     }

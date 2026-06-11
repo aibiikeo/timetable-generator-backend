@@ -22,6 +22,9 @@ public record AssignmentResponse(
         String hoursSplitting,
         int generatedLessonsCount,
         int requiredLessonsCount,
+        int generatedLessonBlocksCount,
+        int requiredLessonBlocksCount,
+        int requiredLessonSlotsCount,
 
         String placementStatus,
         String failureReason,

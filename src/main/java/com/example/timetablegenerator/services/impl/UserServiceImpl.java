@@ -2,6 +2,7 @@ package com.example.timetablegenerator.services.impl;
 
 import com.example.timetablegenerator.domain.dto.request.SuperAdminRequest;
 import com.example.timetablegenerator.domain.dto.request.UserRequest;
+import com.example.timetablegenerator.domain.dto.request.UserUpdateRequest;
 import com.example.timetablegenerator.domain.dto.response.UserResponse;
 import com.example.timetablegenerator.domain.entities.User;
 import com.example.timetablegenerator.domain.entities.UserRole;
@@ -76,7 +77,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserResponse updateUser(Long userId, UserRequest request) {
+    public UserResponse updateUser(Long userId, UserUpdateRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
 

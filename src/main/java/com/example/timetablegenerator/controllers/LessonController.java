@@ -2,6 +2,8 @@ package com.example.timetablegenerator.controllers;
 
 import com.example.timetablegenerator.domain.dto.request.LessonRequest;
 import com.example.timetablegenerator.domain.dto.response.LessonResponse;
+import com.example.timetablegenerator.domain.dto.request.MoveLessonRequest;
+import com.example.timetablegenerator.domain.dto.response.MoveLessonValidationResponse;
 import com.example.timetablegenerator.exceptions.NotFoundException;
 import com.example.timetablegenerator.services.LessonService;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -65,6 +67,22 @@ public class LessonController {
             @PathVariable Long lessonId,
             @Valid @RequestBody LessonRequest request) {
         return lessonService.updateLesson(timetableId, lessonId, request);
+    }
+
+    @PostMapping("/{lessonId}/move/validate")
+    public MoveLessonValidationResponse validateLessonMove(
+            @PathVariable Long timetableId,
+            @PathVariable Long lessonId,
+            @Valid @RequestBody MoveLessonRequest request) {
+        return lessonService.validateLessonMove(timetableId, lessonId, request);
+    }
+
+    @PatchMapping("/{lessonId}/move")
+    public LessonResponse moveLesson(
+            @PathVariable Long timetableId,
+            @PathVariable Long lessonId,
+            @Valid @RequestBody MoveLessonRequest request) {
+        return lessonService.moveLesson(timetableId, lessonId, request);
     }
 
     @DeleteMapping("/{lessonId}")

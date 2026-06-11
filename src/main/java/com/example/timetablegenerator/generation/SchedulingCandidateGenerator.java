@@ -119,11 +119,6 @@ public class SchedulingCandidateGenerator {
                     .thenComparing(TimeCandidate::day)
                     .thenComparing(TimeCandidate::startTime));
 
-            int limit = candidateLimitFor(vertex);
-            if (candidates.size() > limit) {
-                candidates = new ArrayList<>(candidates.subList(0, limit));
-            }
-
             result.put(vertex.getId(), candidates);
         }
 
@@ -141,12 +136,6 @@ public class SchedulingCandidateGenerator {
         log.info("app | Zero-candidate vertices by duration={}", zeroCandidatesByDuration);
 
         return result;
-    }
-
-    private int candidateLimitFor(LessonVertex vertex) {
-        if (vertex.getDurationHours() >= 4) return 42;
-        if (vertex.getDurationHours() == 2) return 66;
-        return 30;
     }
 
     private int estimateCandidateSoftScore(LessonVertex vertex, DayOfWeek day, LocalTime startTime) {

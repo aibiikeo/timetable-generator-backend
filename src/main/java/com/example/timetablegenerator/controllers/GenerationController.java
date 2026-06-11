@@ -4,6 +4,7 @@ import com.example.timetablegenerator.domain.dto.request.AssignmentRequest;
 import com.example.timetablegenerator.domain.dto.request.GenerationMode;
 import com.example.timetablegenerator.domain.dto.response.AssignmentResponse;
 import com.example.timetablegenerator.domain.dto.response.GenerationResponse;
+import com.example.timetablegenerator.domain.dto.response.ManualPlacementSuggestionResponse;
 import com.example.timetablegenerator.services.GenerationService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -84,5 +85,24 @@ public class GenerationController {
                 timetableId, assignmentId, dayOfWeek, startTime, durationHours, roomId);
 
         return ResponseEntity.ok(success);
+    }
+
+    @GetMapping("/timetables/{timetableId}/assignments/{assignmentId}/manual-placement-suggestions")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    public ResponseEntity<List<ManualPlacementSuggestionResponse>> suggestManualPlacements(
+            @PathVariable Long timetableId,
+            @PathVariable Long assignmentId,
+            @RequestParam Integer durationHours,
+            @RequestParam(required = false, defaultValue = "20") int limit) {
+
+        log.info("app | Manual placement suggestions for assignment {}: {}h limit {}",
+                assignmentId, durationHours, limit);
+
+        return ResponseEntity.ok(generationService.suggestManualPlacements(
+                timetableId,
+                assignmentId,
+                durationHours,
+                limit
+        ));
     }
 }

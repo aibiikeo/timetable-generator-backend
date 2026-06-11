@@ -14,6 +14,12 @@ public class GenerationResponse {
     private int totalVertices;
     private int placedLessonsCount;
     private int failedVerticesCount;
+    private int totalLessonBlocks;
+    private int placedLessonBlocksCount;
+    private int failedLessonBlocksCount;
+    private int totalLessonSlots;
+    private int placedLessonSlotsCount;
+    private int failedLessonSlotsCount;
     private TimetableStatus status;
     private List<UnplacedLesson> failedAssignments;
 }
