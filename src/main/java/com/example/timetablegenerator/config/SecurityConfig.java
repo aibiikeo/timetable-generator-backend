@@ -51,7 +51,7 @@ public class SecurityConfig {
 
         configuration.setAllowedOrigins(Arrays.asList(
                 "http://localhost:3000",
-                "http://198.199.80.11:3000"
+                "http://24.199.93.186:3000"
         ));
 
         configuration.setAllowedMethods(Arrays.asList(
